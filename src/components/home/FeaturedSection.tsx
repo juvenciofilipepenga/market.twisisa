@@ -21,13 +21,13 @@ export function FeaturedSection() {
   if (products !== null && products.length === 0) return null;
 
   return (
-    <section className="px-4 py-4">
-      <h2 className="mb-3 text-lg font-bold">{t("home.featured")}</h2>
-      <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4">
+    <section className="py-4">
+      <h2 className="mb-3 px-4 text-xl font-bold">{t("home.featured")}</h2>
+      <div className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-4">
         {products === null
-          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-56 w-36 shrink-0" />)
+          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-40 shrink-0 rounded-2xl sm:w-48" />)
           : products.map((p) => (
-            <div key={p.id} className="w-36 shrink-0">
+            <div key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
               <ProductCard product={p} />
             </div>
           ))}

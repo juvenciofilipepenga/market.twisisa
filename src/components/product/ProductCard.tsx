@@ -1,41 +1,60 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { formatMzn } from "@/lib/format";
 import type { Product } from "@/lib/types";
-import { CartIcon, BoxIcon } from "../icons";
+import { CartIcon, BoxIcon, CheckIcon } from "../icons";
+
+const LOW_STOCK = 5;
 
 export function ProductCard({ product }: { product: Product }) {
   const { t } = useLocale();
   const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0];
   const outOfStock = product.stock <= 0;
+  const lowStock = !outOfStock && product.stock <= LOW_STOCK;
+
+  useEffect(() => {
+    if (!added) return;
+    const id = setTimeout(() => setAdded(false), 1200);
+    return () => clearTimeout(id);
+  }, [added]);
+
+  function onAdd() {
+    addItem(product);
+    setAdded(true);
+  }
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface">
-      <Link to={`/produto/${product.id}`} className="relative block aspect-square w-full bg-elevated">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+      <Link to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full bg-elevated">
         {image ? (
-          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${outOfStock ? "opacity-50" : ""}`} />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={32} height={32} /></div>
         )}
         {outOfStock && (
-          <span className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[11px] font-medium text-white">
-            {t("product.outOfStock")}
-          </span>
+          <span className="absolute bottom-2 left-2 rounded-full bg-bg/90 px-2.5 py-1 text-[11px] font-semibold text-ink">{t("product.outOfStock")}</span>
+        )}
+        {lowStock && (
+          <span className="absolute bottom-2 left-2 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-bg">{t("product.lowStock")}</span>
         )}
       </Link>
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <Link to={`/produto/${product.id}`} className="line-clamp-2 text-sm font-medium text-ink">{product.name}</Link>
-        <p className="text-base font-bold text-primary">{formatMzn(product.priceMzn)}</p>
-        <button
-          onClick={() => addItem(product)}
-          disabled={outOfStock}
-          className="mt-auto flex items-center justify-center gap-1.5 rounded-lg bg-elevated py-2 text-xs font-semibold text-ink transition-colors hover:bg-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-elevated disabled:hover:text-ink"
-        >
-          <CartIcon width={15} height={15} />
-          {t("product.addToCart")}
-        </button>
+      <div className="flex flex-1 flex-col gap-2 p-3">
+        <Link to={`/produto/${product.id}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-ink">{product.name}</Link>
+        <div className="mt-auto flex items-center justify-between gap-2">
+          <p className="font-display text-base font-bold leading-none">{formatMzn(product.priceMzn)}</p>
+          <button
+            onClick={onAdd}
+            disabled={outOfStock}
+            aria-label={`${t("product.addToCart")}: ${product.name}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
+          >
+            {added ? <CheckIcon width={17} height={17} /> : <CartIcon width={17} height={17} />}
+          </button>
+        </div>
       </div>
     </div>
   );

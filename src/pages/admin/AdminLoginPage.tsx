@@ -1,8 +1,11 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useAuth, ApiError } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/Button";
+import { SpeedLines } from "@/components/brand/SpeedLines";
+
+const input = "w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm placeholder:text-ink-faint focus:border-ink-faint focus:outline-none";
 
 export default function AdminLoginPage() {
   const { t } = useLocale();
@@ -22,32 +25,46 @@ export default function AdminLoginPage() {
       const admin = user.roles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
       if (!admin) {
         logout();
-        setError("Esta conta não tem acesso administrativo.");
+        setError(t("admin.login.noAccess"));
         return;
       }
       navigate("/admin", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.code : t("common.error"));
+      if (err instanceof ApiError) setError(err.status === 401 ? t("auth.invalidCredentials") : err.code);
+      else setError(t("common.error"));
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 flex flex-col items-center gap-2">
-          <img src="/logo.png" alt="Twisisa Market" width={44} height={44} />
-          <h1 className="text-lg font-bold">{t("admin.login.title")}</h1>
+    <div className="grid min-h-screen bg-bg lg:grid-cols-2">
+      <aside className="relative hidden overflow-hidden bg-primary-active lg:flex lg:flex-col lg:justify-between">
+        <SpeedLines className="pointer-events-none absolute -left-10 top-16 h-56 w-80 text-white/15" />
+        <p className="relative max-w-sm px-12 pt-14 font-display text-4xl font-extrabold leading-[1.1] text-white">{t("admin.login.side")}</p>
+        <img src="/mascot.png" alt="" width={300} height={300} className="relative ml-auto h-96 w-96 object-contain object-bottom" />
+      </aside>
+
+      <div className="flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3">
+            <img src="/logo.png" alt="Twisisa Market" width={44} height={44} />
+            <h1 className="text-2xl font-bold">{t("admin.login.title")}</h1>
+          </div>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink-muted">{t("auth.email")}</span>
+              <input required type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} className={input} />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-sm font-medium text-ink-muted">{t("auth.password")}</span>
+              <input required type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={input} />
+            </label>
+            {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
+            <Button type="submit" className="w-full py-3" disabled={loading}>{loading ? t("common.loading") : t("auth.submit")}</Button>
+          </form>
+          <Link to="/" className="mt-6 inline-block text-sm text-ink-muted hover:text-ink">{t("admin.login.back")}</Link>
         </div>
-        <form onSubmit={onSubmit} className="space-y-3 rounded-2xl border border-border bg-surface p-5">
-          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("auth.email")}
-            className="w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-sm focus:border-primary focus:outline-none" />
-          <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("auth.password")}
-            className="w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-sm focus:border-primary focus:outline-none" />
-          {error && <p className="text-xs text-danger">{error}</p>}
-          <Button type="submit" className="w-full" disabled={loading}>{t("auth.submit")}</Button>
-        </form>
       </div>
     </div>
   );

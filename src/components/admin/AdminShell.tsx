@@ -27,10 +27,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen md:flex">
-      <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-surface md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-screen">
         <div className="flex items-center gap-2 border-b border-border px-4 py-4">
-          <img src="/logo.png" alt="Twisisa Market" width={26} height={26} />
-          <span className="text-sm font-bold">Twisisa Admin</span>
+          <img src="/logo.png" alt="Twisisa Market" width={30} height={30} />
+          <span className="font-display text-base font-extrabold leading-none">Twisisa <span className="font-semibold text-ink-muted">Admin</span></span>
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {/* Único ponto onde, dentro do admin, se volta à loja pública — antes não existia
@@ -40,8 +40,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </Link>
           {NAV.map(({ href, key, Icon, exact }) => (
             <Link key={href} to={href}
-              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${isActive(href, exact) ? "bg-primary text-white" : "text-ink-muted hover:bg-elevated hover:text-ink"}`}>
-              <Icon width={18} height={18} />{t(key)}
+              className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${isActive(href, exact) ? "bg-primary-soft text-ink" : "text-ink-muted hover:bg-elevated hover:text-ink"}`}>
+              <Icon width={18} height={18} className={isActive(href, exact) ? "text-primary-text" : ""} />{t(key)}
             </Link>
           ))}
         </nav>
@@ -54,7 +54,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <header className="safe-top sticky top-0 z-30 border-b border-border bg-bg/95 backdrop-blur md:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <Link to="/" className="flex items-center gap-2" aria-label={t("admin.nav.viewStore")}>
@@ -74,7 +74,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </Link>
             {NAV.map(({ href, key, Icon, exact }) => (
               <Link key={href} to={href}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${isActive(href, exact) ? "bg-primary text-white" : "bg-elevated text-ink-muted"}`}>
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium ${isActive(href, exact) ? "bg-ink text-bg" : "bg-elevated text-ink-muted"}`}>
                 <Icon width={14} height={14} />{t(key)}
               </Link>
             ))}
@@ -85,7 +85,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <LanguageToggle />
         </div>
 
-        <main className="p-4 md:p-6">{children}</main>
+        <main className="mx-auto max-w-6xl p-4 md:p-8">{children}</main>
       </div>
     </div>
   );

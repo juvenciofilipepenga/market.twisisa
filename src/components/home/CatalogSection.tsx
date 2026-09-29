@@ -43,8 +43,11 @@ export function CatalogSection() {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
-    <section className="px-4 py-4">
-      <h2 className="mb-3 text-lg font-bold">{t("home.catalog")}</h2>
+    <section id="catalogo" className="scroll-mt-32 px-4 py-4">
+      <div className="mb-3 flex items-baseline justify-between gap-3">
+        <h2 className="text-xl font-bold">{t("home.catalog")}</h2>
+        {products !== null && total > 0 && <p className="text-xs text-ink-faint">{total} {t("catalog.count")}</p>}
+      </div>
       {error ? (
         <EmptyState title={t("common.error")} icon={<SearchIcon width={26} height={26} />} />
       ) : products !== null && products.length === 0 ? (

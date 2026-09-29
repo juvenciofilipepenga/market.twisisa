@@ -12,7 +12,7 @@ import { BoxIcon, ClipboardIcon, TagIcon } from "@/components/icons";
 const LOW_STOCK_THRESHOLD = 5;
 
 export default function AdminDashboard() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { t } = useLocale();
   const [totalProducts, setTotalProducts] = useState<number | null>(null);
   const [lowStock, setLowStock] = useState<number | null>(null);
@@ -34,7 +34,10 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold">{t("admin.nav.dashboard")}</h1>
+      <div className="mb-5">
+        <h1 className="text-2xl font-bold">{t("admin.greeting")} {user?.name.split(" ")[0]}</h1>
+        <p className="mt-0.5 text-sm text-ink-muted">{t("admin.nav.dashboard")}</p>
+      </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label={t("admin.dashboard.products")} value={totalProducts} icon={<BoxIcon width={18} height={18} />} />
         <StatCard label={t("admin.dashboard.lowStock")} value={lowStock} icon={<TagIcon width={18} height={18} />} />

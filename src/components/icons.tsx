@@ -54,3 +54,9 @@ export function LogOutIcon(props: SVGProps<SVGSVGElement>) {
 export function UserIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" /></svg>);
 }
+export function WalletIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18a2 2 0 0 1 2 2v2" /><path d="M4 7.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8H6.5A2.5 2.5 0 0 1 4 6.5" /><circle cx="16.5" cy="14" r="1.2" /></svg>);
+}
+export function ChatIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-3.9A8 8 0 1 1 20 12Z" /><path d="M9 12h.01M12 12h.01M15 12h.01" /></svg>);
+}

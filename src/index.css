@@ -4,12 +4,30 @@
 
 :root { color-scheme: dark; }
 
-html, body, #root { height: 100%; }
-html, body { background-color: #0B0B0D; color: #F5F5F7; }
+html, body, #root { min-height: 100%; }
+html, body { background-color: #140F0E; color: #F8F2ED; }
 * { -webkit-tap-highlight-color: transparent; }
+
+@layer base {
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "Figtree", -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.02em; }
+  :focus-visible { outline: 2px solid #FF6259; outline-offset: 2px; }
+}
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Único momento animado da loja: as linhas de velocidade do logótipo entram uma vez, no hero. */
+.speed-line { transform-box: fill-box; transform-origin: left center; animation: speed-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.speed-line:nth-child(2) { animation-delay: 0.08s; }
+.speed-line:nth-child(3) { animation-delay: 0.16s; }
+.speed-line:nth-child(4) { animation-delay: 0.24s; }
+@keyframes speed-in {
+  from { opacity: 0; transform: translateX(-32px) scaleX(0.35); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speed-line { animation: none; }
+}
