@@ -1,0 +1,141 @@
+import { useEffect, useState } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { useLocale } from "@/i18n/LocaleContext";
+import { api } from "@/lib/api";
+import { formatMzn } from "@/lib/format";
+import type { Order, OrderStatus } from "@/lib/types";
+import { ORDER_STATUSES, orderStatusLabel, nextStatusOptions } from "@/lib/orderStatus";
+import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { ClipboardIcon } from "@/components/icons";
+
+const PAGE_SIZE = 20;
+
+export default function AdminOrdersPage() {
+  const { token } = useAuth();
+  const { t, locale } = useLocale();
+  const [orders, setOrders] = useState<Order[] | null>(null);
+  const [status, setStatus] = useState<OrderStatus | "">("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<Record<string, OrderStatus>>({});
+  const [reviewNote, setReviewNote] = useState<Record<string, string>>({});
+
+  function reload() {
+    if (!token) return;
+    setOrders(null);
+    api.admin.orders.list(token, { status: status || undefined, limit: PAGE_SIZE }).then((r) => setOrders(r.data));
+  }
+
+  useEffect(reload, [token, status]);
+
+  async function applyStatus(order: Order) {
+    if (!token) return;
+    const next = pendingStatus[order.id];
+    if (!next) return;
+    const updated = await api.admin.orders.updateStatus(token, order.id, next);
+    setOrders((prev) => prev?.map((o) => (o.id === order.id ? { ...o, ...updated } : o)) ?? null);
+  }
+
+  async function reviewPayment(paymentId: string, approved: boolean) {
+    if (!token) return;
+    await api.admin.payments.review(token, paymentId, approved, reviewNote[paymentId]);
+    reload();
+  }
+
+  return (
+    <div>
+      <h1 className="mb-4 text-xl font-bold">{t("admin.nav.orders")}</h1>
+
+      <select value={status} onChange={(e) => setStatus(e.target.value as OrderStatus | "")}
+        className="mb-4 w-full max-w-xs rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none">
+        <option value="">{t("categories.all")}</option>
+        {ORDER_STATUSES.map((s) => <option key={s} value={s}>{orderStatusLabel[locale][s]}</option>)}
+      </select>
+
+      {orders === null && <div className="space-y-2">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 w-full" />)}</div>}
+      {orders !== null && orders.length === 0 && <EmptyState title={t("catalog.empty")} icon={<ClipboardIcon width={24} height={24} />} />}
+
+      {orders !== null && orders.length > 0 && (
+        <div className="space-y-2">
+          {orders.map((order) => {
+            const options = nextStatusOptions(order.status);
+            const isOpen = expanded === order.id;
+            const pendingReviewPayment = order.payments?.find((p) => p.status === "PROOF_SUBMITTED" || p.status === "UNDER_REVIEW");
+            return (
+              <div key={order.id} className="rounded-xl border border-border bg-surface p-3">
+                <button onClick={() => setExpanded(isOpen ? null : order.id)} className="flex w-full items-center justify-between gap-3 text-left">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold">{order.orderNumber}</p>
+                    <p className="truncate text-xs text-ink-faint">{order.user?.name ?? order.userId} · {order.user?.email}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {pendingReviewPayment && <Badge tone="warning">{t("admin.orders.reviewProof")}</Badge>}
+                    <span className="text-sm font-bold">{formatMzn(order.totalMzn)}</span>
+                    <OrderStatusBadge status={order.status} />
+                  </div>
+                </button>
+
+                {isOpen && (
+                  <div className="mt-3 space-y-3 border-t border-border pt-3">
+                    {(order.items ?? []).map((item) => (
+                      <div key={item.id} className="flex justify-between text-sm text-ink-muted">
+                        <span>{item.quantity}× {item.productName}</span>
+                        <span>{formatMzn(item.subtotalMzn)}</span>
+                      </div>
+                    ))}
+
+                    {order.payments && order.payments.length > 0 && (
+                      <div className="space-y-2 border-t border-border pt-2">
+                        <p className="text-xs font-semibold text-ink-muted">{t("admin.orders.payment")}</p>
+                        {order.payments.map((p) => (
+                          <div key={p.id} className="rounded-lg bg-elevated p-2 text-xs">
+                            <div className="flex items-center justify-between">
+                              <span>{p.provider} · {p.method ?? "—"} · {p.reference}</span>
+                              <span className="font-semibold">{p.status}</span>
+                            </div>
+                            {p.proofUrl && (
+                              <a href={p.proofUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-primary underline">
+                                {t("admin.orders.reviewProof")}
+                              </a>
+                            )}
+                            {(p.status === "PROOF_SUBMITTED" || p.status === "UNDER_REVIEW") && (
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <input value={reviewNote[p.id] ?? ""} onChange={(e) => setReviewNote((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                                  placeholder="Nota (opcional)" className="min-w-[140px] flex-1 rounded-lg border border-border bg-surface px-2 py-1 text-xs focus:border-primary focus:outline-none" />
+                                <Button variant="secondary" onClick={() => reviewPayment(p.id, true)}>{t("admin.orders.approve")}</Button>
+                                <Button variant="danger" onClick={() => reviewPayment(p.id, false)}>{t("admin.orders.reject")}</Button>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {options.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-2">
+                        <select
+                          value={pendingStatus[order.id] ?? ""}
+                          onChange={(e) => setPendingStatus((prev) => ({ ...prev, [order.id]: e.target.value as OrderStatus }))}
+                          className="rounded-lg border border-border bg-elevated px-2 py-1.5 text-xs focus:border-primary focus:outline-none"
+                        >
+                          <option value="">{t("admin.orders.status")}…</option>
+                          {options.map((s) => <option key={s} value={s}>{orderStatusLabel[locale][s]}</option>)}
+                        </select>
+                        <Button variant="secondary" onClick={() => applyStatus(order)} disabled={!pendingStatus[order.id]}>
+                          {t("common.save")}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
