@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { LocaleProvider } from "./i18n/LocaleContext";
 import { AuthProvider } from "./auth/AuthContext";
 import { CartProvider } from "./cart/CartContext";
@@ -13,6 +13,9 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import LegalPage from "./pages/legal/LegalPage";
+import { PublicLayout } from "./components/layout/PublicLayout";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -32,14 +35,20 @@ export default function App() {
         <AuthProvider>
           <CartProvider>
             <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/produto/:id" element={<ProductPage />} />
-              <Route path="/carrinho" element={<CartPage />} />
-              <Route path="/encomenda/:id" element={<OrderPage />} />
-              <Route path="/perfil" element={<ProfilePage />} />
-              <Route path="/entrar" element={<LoginPage />} />
-              <Route path="/registar" element={<RegisterPage />} />
-              <Route path="/notificacoes" element={<NotificationsPage />} />
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/produto/:id" element={<ProductPage />} />
+                <Route path="/carrinho" element={<CartPage />} />
+                <Route path="/encomenda/:id" element={<OrderPage />} />
+                <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/entrar" element={<LoginPage />} />
+                <Route path="/registar" element={<RegisterPage />} />
+                <Route path="/notificacoes" element={<NotificationsPage />} />
+                <Route path="/termos" element={<LegalPage doc="terms" />} />
+                <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
+                <Route path="/cookies" element={<LegalPage doc="cookies" />} />
+                <Route path="*" element={<NotFoundPage />} />
+              </Route>
 
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/admin" element={<AdminLayout />}>
@@ -58,7 +67,6 @@ export default function App() {
                 />
               </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
 
             <ErrorBoundary mode="silent">

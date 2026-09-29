@@ -4,6 +4,7 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useAuth, ApiError } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { SpeedLines } from "@/components/brand/SpeedLines";
+import { img } from "@/lib/images";
 
 const input = "w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm placeholder:text-ink-faint focus:border-ink-faint focus:outline-none";
 
@@ -42,7 +43,7 @@ export default function AdminLoginPage() {
       <aside className="relative hidden overflow-hidden bg-primary-active lg:flex lg:flex-col lg:justify-between">
         <SpeedLines className="pointer-events-none absolute -left-10 top-16 h-56 w-80 text-white/15" />
         <p className="relative max-w-sm px-12 pt-14 font-display text-4xl font-extrabold leading-[1.1] text-white">{t("admin.login.side")}</p>
-        <img src="/mascot.png" alt="" width={300} height={300} className="relative ml-auto h-96 w-96 object-contain object-bottom" />
+        <img src={img.mascotDelivery} alt="" width={900} height={1106} className="relative ml-auto h-[28rem] object-contain object-bottom" />
       </aside>
 
       <div className="flex items-center justify-center px-4 py-10">

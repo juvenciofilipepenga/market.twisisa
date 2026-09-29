@@ -1,5 +1,6 @@
 import { useLocale } from "@/i18n/LocaleContext";
 import { SpeedLines } from "../brand/SpeedLines";
+import { img } from "@/lib/images";
 
 export function Hero() {
   const { t } = useLocale();
@@ -25,7 +26,7 @@ export function Hero() {
               {t("hero.cta")}
             </button>
           </div>
-          <img src="/mascot.png" alt="" width={300} height={300} className="h-36 w-36 object-contain object-bottom sm:h-48 sm:w-48 md:h-72 md:w-72" />
+          <img src={img.mascotPayment} alt="" width={900} height={952} fetchPriority="high" className="h-36 w-36 object-contain object-bottom sm:h-48 sm:w-48 md:h-72 md:w-72" />
         </div>
       </div>
     </section>
