@@ -15,7 +15,9 @@ import RegisterPage from "./pages/RegisterPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LegalPage from "./pages/legal/LegalPage";
-import { PublicLayout } from "./components/layout/PublicLayout";
+import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
+import { SessionWatcher } from "./components/layout/SessionWatcher";
+import { ToastProvider } from "./components/ui/Toast";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -32,8 +34,10 @@ export default function App() {
   return (
     <ErrorBoundary>
       <LocaleProvider>
+        <ToastProvider>
         <AuthProvider>
           <CartProvider>
+            <SessionWatcher />
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
@@ -41,13 +45,16 @@ export default function App() {
                 <Route path="/carrinho" element={<CartPage />} />
                 <Route path="/encomenda/:id" element={<OrderPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
-                <Route path="/entrar" element={<LoginPage />} />
-                <Route path="/registar" element={<RegisterPage />} />
                 <Route path="/notificacoes" element={<NotificationsPage />} />
                 <Route path="/termos" element={<LegalPage doc="terms" />} />
                 <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
                 <Route path="/cookies" element={<LegalPage doc="cookies" />} />
                 <Route path="*" element={<NotFoundPage />} />
+              </Route>
+
+              <Route element={<FocusLayout />}>
+                <Route path="/entrar" element={<LoginPage />} />
+                <Route path="/registar" element={<RegisterPage />} />
               </Route>
 
               <Route path="/admin/login" element={<AdminLoginPage />} />
@@ -74,6 +81,7 @@ export default function App() {
             </ErrorBoundary>
           </CartProvider>
         </AuthProvider>
+        </ToastProvider>
       </LocaleProvider>
     </ErrorBoundary>
   );

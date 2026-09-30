@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
+import { flyToCart } from "@/lib/fx";
 import { formatMzn } from "@/lib/format";
 import type { Product } from "@/lib/types";
+import { useToast } from "../ui/Toast";
 import { CartIcon, BoxIcon, CheckIcon } from "../icons";
 
 const LOW_STOCK = 5;
@@ -11,7 +13,10 @@ const LOW_STOCK = 5;
 export function ProductCard({ product }: { product: Product }) {
   const { t } = useLocale();
   const { addItem } = useCart();
+  const toast = useToast();
+  const navigate = useNavigate();
   const [added, setAdded] = useState(false);
+  const imageBox = useRef<HTMLAnchorElement>(null);
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0];
   const outOfStock = product.stock <= 0;
   const lowStock = !outOfStock && product.stock <= LOW_STOCK;
@@ -25,22 +30,20 @@ export function ProductCard({ product }: { product: Product }) {
   function onAdd() {
     addItem(product);
     setAdded(true);
+    flyToCart(imageBox.current, image?.url ?? null);
+    toast.show(`${product.name} ${t("toast.added")}`, { action: { label: t("cart.view"), onClick: () => navigate("/carrinho") } });
   }
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition duration-300 [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:border-primary/40 [@media(hover:hover)]:hover:shadow-xl [@media(hover:hover)]:hover:shadow-black/50 motion-reduce:transition-none motion-reduce:hover:transform-none">
-      <Link to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full overflow-hidden bg-elevated">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
+      <Link ref={imageBox} to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full bg-elevated">
         {image ? (
-          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out motion-reduce:transition-none [@media(hover:hover)]:group-hover:scale-105 ${outOfStock ? "opacity-50" : ""}`} />
+          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${outOfStock ? "opacity-50" : ""}`} />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={32} height={32} /></div>
         )}
-        {outOfStock && (
-          <span className="absolute bottom-2 left-2 rounded-full bg-bg/90 px-2.5 py-1 text-[11px] font-semibold text-ink">{t("product.outOfStock")}</span>
-        )}
-        {lowStock && (
-          <span className="absolute bottom-2 left-2 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-bg">{t("product.lowStock")}</span>
-        )}
+        {outOfStock && <span className="absolute bottom-2 left-2 rounded-full bg-bg/90 px-2.5 py-1 text-[11px] font-semibold text-ink">{t("product.outOfStock")}</span>}
+        {lowStock && <span className="absolute bottom-2 left-2 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-bg">{t("product.lowStock")}</span>}
       </Link>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <Link to={`/produto/${product.id}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-ink">{product.name}</Link>
@@ -50,9 +53,9 @@ export function ProductCard({ product }: { product: Product }) {
             onClick={onAdd}
             disabled={outOfStock}
             aria-label={`${t("product.addToCart")}: ${product.name}`}
-            className={`press flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
+            className={`press flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
           >
-            {added ? <CheckIcon width={17} height={17} /> : <CartIcon width={17} height={17} />}
+            {added ? <CheckIcon className="pop" width={18} height={18} /> : <CartIcon width={18} height={18} />}
           </button>
         </div>
       </div>

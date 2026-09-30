@@ -115,3 +115,9 @@ export function LinkIcon(props: SVGProps<SVGSVGElement>) {
 export function GiftIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8M12 8v13" /><path d="M12 8c-1.5-4-6-4-6-1.5C6 8 9 8 12 8Zm0 0c1.5-4 6-4 6-1.5C18 8 15 8 12 8Z" /></svg>);
 }
+export function EyeIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></svg>);
+}
+export function EyeOffIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M3 3l18 18" /><path d="M10.6 6.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4-.9" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>);
+}

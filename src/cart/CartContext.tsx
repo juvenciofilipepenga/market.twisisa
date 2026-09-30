@@ -17,6 +17,8 @@ interface CartContextValue {
   addItem: (product: Product, quantity?: number) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   removeItem: (productId: string) => void;
+  /** Volta a pôr um item removido ("Desfazer"), na posição original. */
+  restoreItem: (item: CartItem, index?: number) => void;
   clear: () => void;
 }
 
@@ -66,13 +68,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
   }
 
+  function restoreItem(item: CartItem, index?: number) {
+    setItems((prev) => {
+      if (prev.some((i) => i.productId === item.productId)) return prev;
+      const next = [...prev];
+      next.splice(Math.min(index ?? next.length, next.length), 0, item);
+      return next;
+    });
+  }
+
   function clear() { setItems([]); }
 
   const value = useMemo<CartContextValue>(() => ({
     items,
     count: items.reduce((sum, i) => sum + i.quantity, 0),
     subtotal: items.reduce((sum, i) => sum + Number(i.priceMzn) * i.quantity, 0),
-    addItem, updateQuantity, removeItem, clear
+    addItem, updateQuantity, removeItem, restoreItem, clear
   }), [items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

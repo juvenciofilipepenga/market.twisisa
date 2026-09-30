@@ -4,17 +4,19 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
+import { CART_BUMP_EVENT } from "@/lib/fx";
+import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import type { Product } from "@/lib/types";
 import { formatMzn } from "@/lib/format";
 import { SearchIcon, BellIcon, CartIcon, BoxIcon, UserIcon } from "../icons";
 import { LanguageToggle } from "./LanguageToggle";
 
-const iconButton = "relative flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-elevated hover:text-ink";
+const iconButton = "press relative flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-elevated hover:text-ink";
 
-function CountBadge({ value }: { value: number }) {
+function CountBadge({ value, bumpKey = 0 }: { value: number; bumpKey?: number }) {
   if (value <= 0) return null;
   return (
-    <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+    <span key={bumpKey} className={`absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white ${bumpKey ? "bump" : ""}`}>
       {value > 9 ? "9+" : value}
     </span>
   );
@@ -30,17 +32,27 @@ export function Header() {
   const [unread, setUnread] = useState(0);
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [bumpKey, setBumpKey] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  // Esconde ao descer, volta ao subir; nunca some enquanto se pesquisa.
+  const hidden = useHideOnScroll(searchFocused || showSuggestions);
 
   useEffect(() => {
     if (!token) { setUnread(0); return; }
     api.notifications.list(token).then((res) => {
       setUnread(res.data.filter((n) => !n.readAt).length);
-    }).catch(() => { /* silencioso: badge de notificações não é crítico */ });
+    }).catch(() => { /* silencioso: o número de notificações não é crítico */ });
   }, [token]);
 
-  // Sugestões ao vivo: reaproveita o mesmo GET /products?search= do catálogo, só que com
-  // limit=5 — o backend não tem um endpoint de sugestões próprio.
+  // O produto que "voa" para o carrinho avisa aqui quando aterra, e o número dá um pequeno salto.
+  useEffect(() => {
+    const onBump = () => setBumpKey((k) => k + 1);
+    window.addEventListener(CART_BUMP_EVENT, onBump);
+    return () => window.removeEventListener(CART_BUMP_EVENT, onBump);
+  }, []);
+
+  // Sugestões ao vivo: reaproveita GET /products?search= com limit=5 (não há endpoint próprio).
   useEffect(() => {
     const term = search.trim();
     if (term.length < 2) { setSuggestions([]); return; }
@@ -69,9 +81,9 @@ export function Header() {
     navigate(`/produto/${id}`);
   }
 
-  // Telemóvel: 2 linhas (marca + acções, depois pesquisa a toda a largura). Ecrã largo: 1 linha.
+  // Telemóvel: 2 linhas (marca + acções, depois pesquisa). Ecrã largo: 1 linha.
   return (
-    <header className="safe-top sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur">
+    <header className={`safe-top sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur transition-transform duration-300 motion-reduce:transition-none ${hidden ? "-translate-y-full" : ""}`}>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 md:flex-nowrap md:py-3">
         <Link to="/" aria-label={t("nav.home")} className="order-1 flex shrink-0 items-center gap-2 rounded-xl py-1 pr-2">
           <img src="/logo.png" alt="" width={34} height={34} className="h-[34px] w-[34px]" />
@@ -84,8 +96,8 @@ export function Header() {
           <Link to="/notificacoes" className={iconButton} aria-label={t("nav.notifications")}>
             <BellIcon /><CountBadge value={unread} />
           </Link>
-          <Link to="/carrinho" className={iconButton} aria-label={t("nav.cart")}>
-            <CartIcon /><CountBadge value={count} />
+          <Link to="/carrinho" data-cart-target className={iconButton} aria-label={t("nav.cart")}>
+            <CartIcon /><CountBadge value={count} bumpKey={bumpKey} />
           </Link>
           <Link to={token ? "/perfil" : "/entrar"} className={iconButton} aria-label={token ? t("nav.profile") : t("auth.login")}>
             <UserIcon />
@@ -99,10 +111,12 @@ export function Header() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => setShowSuggestions(true)}
+              onFocus={() => { setShowSuggestions(true); setSearchFocused(true); }}
+              onBlur={() => setSearchFocused(false)}
               placeholder={t("search.placeholder")}
               aria-label={t("search.placeholder")}
-              className="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
+              enterKeyHint="search"
+              className="h-11 w-full rounded-xl border border-border bg-surface pl-10 pr-3 text-sm text-ink placeholder:text-ink-faint focus:border-ink-faint focus:outline-none"
             />
           </form>
 

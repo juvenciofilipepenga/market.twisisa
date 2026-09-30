@@ -4,7 +4,6 @@ import { useCopy } from "@/lib/useCopy";
 import { img } from "@/lib/images";
 import { COMPANY } from "@/config/company";
 import type { ReferralInfo } from "@/lib/types";
-import { Reveal } from "@/components/ui/Reveal";
 import { GiftIcon, ClipboardIcon, CheckIcon, LinkIcon, ChatIcon, ShareIcon } from "@/components/icons";
 
 // O número sobe até ao valor real (700 ms). Sem animação para quem pede menos movimento.
@@ -44,7 +43,7 @@ export function ReferralCard({ referral }: { referral: ReferralInfo }) {
   }
 
   return (
-    <Reveal as="section" className="overflow-hidden rounded-2xl border border-border bg-surface">
+    <section className="overflow-hidden rounded-2xl border border-border bg-surface">
       <div className="p-4 sm:p-5">
         <div className="flex items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text"><GiftIcon width={22} height={22} /></span>
@@ -109,6 +108,6 @@ export function ReferralCard({ referral }: { referral: ReferralInfo }) {
           </p>
         )}
       </div>
-    </Reveal>
+    </section>
   );
 }

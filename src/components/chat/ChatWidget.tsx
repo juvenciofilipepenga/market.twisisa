@@ -6,6 +6,8 @@ import { api } from "@/lib/api";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import type { ChatMenuOption, ChatMessage, Conversation } from "@/lib/types";
 import { OPEN_CHAT_EVENT } from "@/lib/chatBus";
+import { img } from "@/lib/images";
+import { Button } from "../ui/Button";
 import { XIcon, PlusIcon } from "../icons";
 
 // Não aparece dentro do admin, que tem a sua própria página de chat (/admin/chat).
@@ -95,9 +97,10 @@ export default function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label={t("chat.title")}
-          className="fixed bottom-4 right-4 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-surface shadow-lg shadow-black/40"
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--toast-offset, 16px))" }}
+          className="press fixed right-4 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-surface shadow-lg shadow-black/40"
         >
-          <img src="/mascot.png" alt="" className="h-full w-full object-cover" />
+          <img src={img.mascotPayment} alt="" className="h-full w-full bg-primary-active object-cover object-[50%_12%]" />
         </button>
       )}
 
@@ -105,7 +108,7 @@ export default function ChatWidget() {
         <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 sm:p-4">
           <div className="flex h-[80vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface sm:h-[600px] sm:max-w-sm sm:rounded-2xl">
             <div className="flex items-center gap-3 border-b border-border bg-elevated p-3">
-              <img src="/mascot.png" alt="" className="h-10 w-10 rounded-full object-cover" />
+              <img src={img.mascotPayment} alt="" className="h-10 w-10 rounded-full bg-primary-active object-cover object-[50%_12%]" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{t("chat.title")}</p>
                 {conversation?.status === "ESCALATED" && <p className="text-xs text-warning">{t("chat.escalated")}</p>}
@@ -118,7 +121,7 @@ export default function ChatWidget() {
 
             {!token ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-                <img src="/mascot.png" alt="" className="h-28 w-28 object-contain" />
+                <img src={img.mascotPayment} alt="" className="h-28 w-28 object-contain" />
                 <p className="text-sm text-ink-muted">{t("chat.loginRequired")}</p>
                 <div className="flex gap-2">
                   <Link to="/entrar" onClick={() => setOpen(false)} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white">{t("auth.login")}</Link>
@@ -175,9 +178,7 @@ export default function ChatWidget() {
                       placeholder={t("chat.placeholder")}
                       className="flex-1 rounded-xl border border-border bg-elevated px-3 py-2 text-sm focus:border-primary focus:outline-none"
                     />
-                    <button onClick={() => send(text)} disabled={sending || !text.trim()} className="shrink-0 rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-white disabled:opacity-40">
-                      {t("common.send")}
-                    </button>
+                    <Button size="md" className="shrink-0" loading={sending} disabled={!text.trim()} onClick={() => send(text)}>{t("common.send")}</Button>
                   </div>
                 )}
               </>

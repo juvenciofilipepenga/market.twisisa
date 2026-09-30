@@ -1,91 +1,187 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
+import { flyToCart } from "@/lib/fx";
+import { img } from "@/lib/images";
 import { formatMzn } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { BoxIcon, ChevronLeftIcon, MinusIcon, PlusIcon } from "@/components/icons";
+import { useToast, useBottomBarOffset } from "@/components/ui/Toast";
+import { BoxIcon, CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon } from "@/components/icons";
+
+const LOW_STOCK = 5;
+type State = { kind: "loading" } | { kind: "error" } | { kind: "not-found" } | { kind: "ready"; product: Product };
 
 export default function ProductPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLocale();
   const { addItem } = useCart();
-  const [product, setProduct] = useState<Product | null | "not-found">(null);
+  const toast = useToast();
+  const [state, setState] = useState<State>({ kind: "loading" });
+  const [attempt, setAttempt] = useState(0);
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [added, setAdded] = useState(false);
+  const [barVisible, setBarVisible] = useState(false);
+  const gallery = useRef<HTMLDivElement>(null);
+  const buyBox = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    api.products.get(id).then(setProduct).catch((err) => {
-      if (err instanceof ApiError && err.status === 404) setProduct("not-found");
-      else setProduct("not-found");
-    });
-  }, [id]);
+    let cancelled = false;
+    setState({ kind: "loading" });
+    setActiveImage(0);
+    setQuantity(1);
+    api.products.get(id)
+      .then((product) => { if (!cancelled) setState({ kind: "ready", product }); })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const status = typeof err === "object" && err !== null && "status" in err ? (err as { status: number }).status : 0;
+        setState({ kind: status === 404 ? "not-found" : "error" });
+      });
+    return () => { cancelled = true; };
+  }, [id, attempt]);
+
+  // Barra de compra fixa (só telemóvel): aparece quando o botão principal sai do ecrã, para comprar sem voltar a subir.
+  const ready = state.kind === "ready";
+  useEffect(() => {
+    const el = buyBox.current;
+    if (!el || !ready || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(([entry]) => setBarVisible(!entry?.isIntersecting), { threshold: 0 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [ready]);
+  useBottomBarOffset(barVisible && ready, 84);
+
+  useEffect(() => {
+    if (!added) return;
+    const timer = setTimeout(() => setAdded(false), 1400);
+    return () => clearTimeout(timer);
+  }, [added]);
+
+  function goBack() {
+    if (window.history.length > 1) navigate(-1); else navigate("/");
+  }
+
+  function onGalleryScroll() {
+    const el = gallery.current;
+    if (el && el.clientWidth) setActiveImage(Math.round(el.scrollLeft / el.clientWidth));
+  }
+
+  function goToImage(i: number) {
+    const el = gallery.current;
+    if (el) el.scrollTo({ left: i * el.clientWidth, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+
+  function onAdd(product: Product) {
+    addItem(product, quantity);
+    setAdded(true);
+    const image = product.images.find((i) => i.isPrimary) ?? product.images[0];
+    flyToCart(gallery.current, image?.url ?? null);
+    toast.show(`${product.name} ${t("toast.added")}`, { action: { label: t("cart.view"), onClick: () => navigate("/carrinho") } });
+  }
 
   return (
-    <main className="pb-10">
+    <main className="pb-28 md:pb-10">
       <Header />
-      <div className="mx-auto max-w-4xl px-4 py-4">
-        <button onClick={() => navigate(-1)} className="mb-4 flex items-center gap-1 text-sm text-ink-muted hover:text-ink">
+      <div className="mx-auto max-w-5xl px-4 py-4">
+        <button onClick={goBack} className="press mb-3 -ml-2 flex h-10 items-center gap-1 rounded-lg px-2 text-sm text-ink-muted hover:text-ink">
           <ChevronLeftIcon width={16} height={16} />{t("common.back")}
         </button>
 
-        {product === null && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Skeleton className="aspect-square w-full" />
-            <div className="space-y-3"><Skeleton className="h-6 w-3/4" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-10 w-full" /></div>
+        {state.kind === "loading" && (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="aspect-square w-full rounded-2xl" />
+            <div className="space-y-3"><Skeleton className="h-8 w-3/4" /><Skeleton className="h-10 w-1/3" /><Skeleton className="h-4 w-1/2" /><Skeleton className="h-24 w-full" /><Skeleton className="h-12 w-full" /></div>
           </div>
         )}
 
-        {product === "not-found" && <EmptyState title={t("common.error")} icon={<BoxIcon width={26} height={26} />} />}
-
-        {product && product !== "not-found" && (
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <div className="relative aspect-square w-full overflow-hidden rounded-2xl border border-border bg-elevated">
-                {product.images[activeImage] ? (
-                  <img src={product.images[activeImage].url} alt={product.images[activeImage].altText ?? product.name} className="absolute inset-0 h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={40} height={40} /></div>
-                )}
-              </div>
-              {product.images.length > 1 && (
-                <div className="mt-2 flex gap-2 overflow-x-auto">
-                  {product.images.map((img, i) => (
-                    <button key={img.id} onClick={() => setActiveImage(i)} className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border ${i === activeImage ? "border-primary" : "border-border"}`}>
-                      <img src={img.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <h1 className="text-xl font-bold">{product.name}</h1>
-              <p className="text-2xl font-extrabold text-primary">{formatMzn(product.priceMzn)}</p>
-              <p className="text-sm text-ink-muted">
-                {product.stock > 0 ? `${product.stock} ${t("product.stock")}` : t("product.outOfStock")}
-              </p>
-              {product.description && <p className="whitespace-pre-line text-sm text-ink-muted">{product.description}</p>}
-
-              <div className="mt-2 flex items-center gap-3">
-                <div className="flex items-center rounded-xl border border-border">
-                  <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="p-2.5 text-ink-muted hover:text-ink"><MinusIcon width={16} height={16} /></button>
-                  <span className="w-8 text-center text-sm font-semibold">{quantity}</span>
-                  <button onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} className="p-2.5 text-ink-muted hover:text-ink"><PlusIcon width={16} height={16} /></button>
-                </div>
-                <Button className="flex-1" disabled={product.stock <= 0} onClick={() => addItem(product, quantity)}>
-                  {t("product.addToCart")}
-                </Button>
-              </div>
-            </div>
-          </div>
+        {state.kind === "not-found" && (
+          <EmptyState image={img.mascotConfused} title={t("product.notFound")} action={<Button variant="secondary" onClick={() => navigate("/")}>{t("common.backHome")}</Button>} />
         )}
+        {state.kind === "error" && (
+          <EmptyState image={img.mascotConfused} title={t("common.error")} action={<Button variant="secondary" onClick={() => setAttempt((a) => a + 1)}>{t("common.retry")}</Button>} />
+        )}
+
+        {state.kind === "ready" && (() => {
+          const product = state.product;
+          const outOfStock = product.stock <= 0;
+          const low = !outOfStock && product.stock <= LOW_STOCK;
+          return (
+            <>
+              <div className="grid gap-6 md:grid-cols-2 md:gap-10">
+                <div>
+                  <div className="relative">
+                    <div ref={gallery} onScroll={onGalleryScroll} className="no-scrollbar flex snap-x snap-mandatory overflow-x-auto rounded-2xl border border-border bg-elevated">
+                      {product.images.length === 0 ? (
+                        <div className="flex aspect-square w-full shrink-0 items-center justify-center text-ink-faint"><BoxIcon width={40} height={40} /></div>
+                      ) : product.images.map((image, i) => (
+                        <div key={image.id} className="relative aspect-square w-full shrink-0 snap-center">
+                          <img src={image.url} alt={image.altText ?? product.name} loading={i === 0 ? "eager" : "lazy"} className="absolute inset-0 h-full w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                    {product.images.length > 1 && (
+                      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+                        {product.images.map((image, i) => (
+                          <span key={image.id} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImage ? "w-5 bg-white" : "w-1.5 bg-white/50"}`} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {product.images.length > 1 && (
+                    <div className="no-scrollbar mt-2 hidden gap-2 overflow-x-auto md:flex">
+                      {product.images.map((image, i) => (
+                        <button key={image.id} onClick={() => goToImage(i)} aria-label={`${i + 1} / ${product.images.length}`} className={`press relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${i === activeImage ? "border-primary" : "border-border"}`}>
+                          <img src={image.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <h1 className="text-2xl font-extrabold leading-tight md:text-3xl">{product.name}</h1>
+                  <p className="font-display text-3xl font-extrabold">{formatMzn(product.priceMzn)}</p>
+                  <p className={`flex items-center gap-2 text-sm font-medium ${outOfStock ? "text-danger" : low ? "text-sun" : "text-success"}`}>
+                    <span className="h-2 w-2 rounded-full bg-current" />
+                    {outOfStock ? t("product.outOfStock") : `${product.stock} ${t("product.stock")}`}
+                  </p>
+                  {product.description && <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{product.description}</p>}
+
+                  <div ref={buyBox} className="mt-1 flex items-center gap-3">
+                    <div className="flex items-center rounded-xl border border-border" role="group" aria-label={t("product.quantity")}>
+                      <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || outOfStock} aria-label="-" className="press flex h-12 w-11 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><MinusIcon width={16} height={16} /></button>
+                      <span className="w-8 text-center text-sm font-bold tabular-nums">{quantity}</span>
+                      <button onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))} disabled={quantity >= product.stock || outOfStock} aria-label="+" className="press flex h-12 w-11 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><PlusIcon width={16} height={16} /></button>
+                    </div>
+                    <Button size="lg" className="flex-1" disabled={outOfStock} onClick={() => onAdd(product)}>
+                      {added ? <><CheckIcon className="pop" width={18} height={18} />{t("product.added")}</> : t("product.addToCart")}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Barra fixa: telemóvel, só quando o botão principal não está visível */}
+              <div className={`safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur transition-transform duration-300 motion-reduce:transition-none md:hidden ${barVisible ? "" : "translate-y-full"}`} aria-hidden={!barVisible}>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs text-ink-muted">{product.name}</p>
+                    <p className="font-display text-lg font-extrabold leading-tight">{formatMzn(Number(product.priceMzn) * quantity)}</p>
+                  </div>
+                  <Button size="lg" className="ml-auto shrink-0" disabled={outOfStock} tabIndex={barVisible ? 0 : -1} onClick={() => onAdd(product)}>
+                    {added ? <CheckIcon className="pop" width={18} height={18} /> : t("product.addToCart")}
+                  </Button>
+                </div>
+              </div>
+            </>
+          );
+        })()}
       </div>
     </main>
   );

@@ -3,11 +3,13 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { Header } from "@/components/layout/Header";
 import { LEGAL, type LegalKey } from "@/content/legal";
 import { COMPANY } from "@/config/company";
+import { img } from "@/lib/images";
 
 export default function LegalPage({ doc }: { doc: LegalKey }) {
   const { t, locale } = useLocale();
   const content = LEGAL[locale][doc];
   const [active, setActive] = useState(0);
+  const art = doc === "privacy" ? img.shield : doc === "terms" ? img.tag : null;
 
   // Índice lateral acompanha a secção visível
   useEffect(() => {
@@ -26,9 +28,14 @@ export default function LegalPage({ doc }: { doc: LegalKey }) {
     <main>
       <Header />
       <div className="mx-auto max-w-5xl px-4 py-10">
-        <h1 className="text-3xl font-extrabold md:text-5xl">{content.title}</h1>
-        <p className="mt-2 text-sm text-ink-faint">{t("legal.updated")}: {updated}</p>
-        {identity && <p className="mt-1 text-sm text-ink-muted">{identity}</p>}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold md:text-5xl">{content.title}</h1>
+            <p className="mt-2 text-sm text-ink-faint">{t("legal.updated")}: {updated}</p>
+            {identity && <p className="mt-1 text-sm text-ink-muted">{identity}</p>}
+          </div>
+          {art && <img src={art} alt="" width={700} height={800} className="h-20 w-auto shrink-0 md:h-28" />}
+        </div>
 
         <div className="mt-10 grid gap-10 lg:grid-cols-[14rem_1fr]">
           <nav aria-label={t("legal.toc")} className="hidden lg:block">

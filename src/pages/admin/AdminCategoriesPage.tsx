@@ -41,7 +41,7 @@ export default function AdminCategoriesPage() {
       <form onSubmit={onSubmit} className="mb-5 flex max-w-sm gap-2">
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nova categoria"
           className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none" />
-        <Button type="submit" disabled={saving}><PlusIcon width={16} height={16} />{t("common.create")}</Button>
+        <Button type="submit" loading={saving}><PlusIcon width={16} height={16} />{t("common.create")}</Button>
       </form>
       {error && <p className="mb-3 text-xs text-danger">{error}</p>}
 

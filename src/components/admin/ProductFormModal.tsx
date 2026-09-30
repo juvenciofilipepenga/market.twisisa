@@ -130,7 +130,7 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
         {error && <p className="text-xs text-danger">{error}</p>}
         <div className="flex gap-2 pt-1">
           <Button type="button" variant="secondary" className="flex-1" onClick={onClose}>{t("common.cancel")}</Button>
-          <Button type="submit" className="flex-1" disabled={saving}>{t("common.save")}</Button>
+          <Button type="submit" className="flex-1" loading={saving}>{t("common.save")}</Button>
         </div>
       </form>
     </Modal>
