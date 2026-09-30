@@ -1,6 +1,7 @@
 import type { Product } from "@/lib/types";
 import { ProductCard } from "./ProductCard";
 import { Skeleton } from "../ui/Skeleton";
+import { Reveal } from "../ui/Reveal";
 
 export function ProductGrid({ products, loading }: { products: Product[]; loading?: boolean }) {
   if (loading) {
@@ -12,7 +13,11 @@ export function ProductGrid({ products, loading }: { products: Product[]; loadin
   }
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {products.map((p) => <ProductCard key={p.id} product={p} />)}
+      {products.map((p, i) => (
+        <Reveal key={p.id} delay={(i % 4) * 70} className="h-full">
+          <ProductCard product={p} />
+        </Reveal>
+      ))}
     </div>
   );
 }

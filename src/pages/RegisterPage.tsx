@@ -1,5 +1,7 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useState, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState, type FormEvent } from "react";
+import { api } from "@/lib/api";
+import { GiftIcon } from "@/components/icons";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useAuth, ApiError } from "@/auth/AuthContext";
@@ -9,6 +11,9 @@ export default function RegisterPage() {
   const { t } = useLocale();
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const refCode = searchParams.get("ref")?.trim() || undefined;
+  const [inviter, setInviter] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -16,12 +21,20 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Confirma o código do link e mostra quem convidou; se for inválido, o registo segue normalmente sem convite.
+  useEffect(() => {
+    if (!refCode) return;
+    let active = true;
+    api.referrals.lookup(refCode).then((r) => { if (active) setInviter(r.inviterFirstName); }).catch(() => { if (active) setInviter(null); });
+    return () => { active = false; };
+  }, [refCode]);
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      await register(name, email, password, phone || undefined);
+      await register(name, email, password, phone || undefined, inviter ? refCode : undefined);
       navigate("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.code : t("common.error"));
@@ -35,6 +48,12 @@ export default function RegisterPage() {
       <Header />
       <div className="mx-auto max-w-sm px-4 py-10">
         <h1 className="mb-6 text-xl font-bold">{t("auth.register")}</h1>
+        {inviter && (
+          <p className="rise mb-4 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary-soft p-3 text-sm text-ink">
+            <GiftIcon width={20} height={20} className="shrink-0 text-primary-text" />
+            <span>{t("auth.invitedBy")} <strong>{inviter}</strong></span>
+          </p>
+        )}
         <form onSubmit={onSubmit} className="space-y-3">
           <input required value={name} onChange={(e) => setName(e.target.value)} placeholder={t("auth.name")}
             className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm focus:border-primary focus:outline-none" />

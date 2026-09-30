@@ -5,6 +5,7 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { api } from "@/lib/api";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import type { ChatMenuOption, ChatMessage, Conversation } from "@/lib/types";
+import { OPEN_CHAT_EVENT } from "@/lib/chatBus";
 import { XIcon, PlusIcon } from "../icons";
 
 // Não aparece dentro do admin, que tem a sua própria página de chat (/admin/chat).
@@ -28,6 +29,13 @@ export default function ChatWidget() {
   function addMessage(msg: ChatMessage) {
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
   }
+
+  // Outros sítios (ex.: rodapé) pedem a abertura do chat através de um evento.
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_CHAT_EVENT, onOpen);
+  }, []);
 
   // Ao terminar a sessão, o chat volta ao estado inicial.
   useEffect(() => {

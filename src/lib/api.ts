@@ -45,8 +45,11 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(res.status, (data as { error?: string }).error ?? "UNKNOWN_ERROR");
+  if (res.status === 401 && options.token) {
+    window.dispatchEvent(new Event("twisisa:unauthorized"));
   }
+  throw new ApiError(res.status, (data as { error?: string }).error ?? "UNKNOWN_ERROR");
+}
   return data as T;
 }
 
@@ -82,7 +85,7 @@ export const api = {
   auth: {
     login: (payload: { email: string; password: string }) =>
       request<AuthResponse>("/auth/login", { method: "POST", body: payload }),
-    register: (payload: { name: string; email: string; phone?: string; password: string }) =>
+    register: (payload: { name: string; email: string; phone?: string; password: string; referralCode?: string }) =>
       request<AuthResponse>("/auth/register", { method: "POST", body: payload }),
     me: (token: string) => request<AuthResponse["user"]>("/auth/me", { token })
   },
@@ -112,7 +115,9 @@ export const api = {
     downloadPdf: (id: string, token: string) => downloadFile(`/invoices/${id}/pdf`, token)
   },
   referrals: {
-    me: (token: string) => request<ReferralInfo>("/referrals/me", { token })
+    me: (token: string) => request<ReferralInfo>("/referrals/me", { token }),
+    // Público: devolve só o primeiro nome de quem convidou (404 se o código não existir).
+    lookup: (code: string) => request<{ valid: boolean; inviterFirstName: string }>(`/referrals/lookup/${encodeURIComponent(code)}`)
   },
   notifications: {
     list: (token: string, page = 1) =>

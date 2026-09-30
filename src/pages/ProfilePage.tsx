@@ -7,6 +7,9 @@ import { detectLocation, type DetectedLocation } from "@/lib/geolocation";
 import type { Me, ReferralInfo } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ReferralCard } from "@/components/profile/ReferralCard";
+import { ClipboardIcon, CheckIcon } from "@/components/icons";
+import { useCopy } from "@/lib/useCopy";
 
 const LOCATION_STORAGE_KEY = "twisisa.deliveryLocation";
 
@@ -24,7 +27,8 @@ export default function ProfilePage() {
   const [location, setLocation] = useState<DetectedLocation | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { copiedKey, copy } = useCopy();
+  const copied = copiedKey === "address";
 
   useEffect(() => {
     if (!token) return;
@@ -61,11 +65,7 @@ export default function ProfilePage() {
   }
 
   function copyAddress() {
-    if (!location) return;
-    navigator.clipboard.writeText(location.address).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    if (location) void copy(location.address, "address");
   }
 
   return (
@@ -96,21 +96,15 @@ export default function ProfilePage() {
           {location && (
             <div className="mt-3 rounded-lg bg-elevated p-3">
               <p className="text-sm">{location.address}</p>
-              <button onClick={copyAddress} className="mt-2 text-xs font-semibold text-primary">
+              <button onClick={copyAddress} className={`press mt-2 inline-flex min-h-[40px] items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors ${copied ? "text-success" : "text-primary-text hover:text-ink"}`}>
+                {copied ? <CheckIcon className="pop" width={16} height={16} /> : <ClipboardIcon width={16} height={16} />}
                 {copied ? t("common.copied") : t("common.copy")}
               </button>
             </div>
           )}
         </div>
 
-        {referral && (
-          <div className="rounded-xl border border-border bg-surface p-4">
-            <h2 className="mb-2 text-sm font-semibold">{t("profile.referralTitle")}</h2>
-            <p className="text-xs text-ink-faint">{t("profile.referralCode")}</p>
-            <p className="mb-1 text-lg font-bold tracking-wide text-primary">{referral.referralCode}</p>
-            <p className="text-xs text-ink-faint">{referral.completedReferrals} {t("profile.referralCount")}</p>
-          </div>
-        )}
+        {referral && <ReferralCard referral={referral} />}
       </div>
     </main>
   );

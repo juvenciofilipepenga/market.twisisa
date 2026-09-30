@@ -8,7 +8,7 @@ interface AuthContextValue {
   loading: boolean;
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
-  register: (name: string, email: string, password: string, phone?: string) => Promise<AuthUser>;
+  register: (name: string, email: string, password: string, phone?: string, referralCode?: string) => Promise<AuthUser>;
   logout: () => void;
 }
 
@@ -33,6 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setLoading(false);
   }, []);
+  
+
+useEffect(() => {
+  const onUnauthorized = () => logout();
+  window.addEventListener("twisisa:unauthorized", onUnauthorized);
+  return () => window.removeEventListener("twisisa:unauthorized", onUnauthorized);
+}, []);
 
   function persist(nextUser: AuthUser, nextToken: string) {
     setUser(nextUser);
@@ -47,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return res.user;
   }
 
-  async function register(name: string, email: string, password: string, phone?: string) {
-    const res = await api.auth.register({ name, email, password, phone });
+  async function register(name: string, email: string, password: string, phone?: string, referralCode?: string) {
+    const res = await api.auth.register({ name, email, password, phone, referralCode });
     persist(res.user, res.accessToken);
     return res.user;
   }

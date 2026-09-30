@@ -65,6 +65,8 @@ export interface AuthUser {
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
+  /** true se o código de convite enviado no registo era válido. */
+  referralApplied?: boolean;
 }
 
 export interface Me {
@@ -177,7 +179,11 @@ export interface AppNotification {
 
 export interface ReferralInfo {
   referralCode: string;
+  /** Convidados com pelo menos uma compra paga. */
   completedReferrals: number;
+  /** Convidados que já criaram conta mas ainda não compraram (backend novo; opcional em versões antigas). */
+  pendingReferrals?: number;
+  invitedReferrals?: number;
 }
 
 export interface ChatAttachment {

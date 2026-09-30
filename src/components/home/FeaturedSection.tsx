@@ -4,6 +4,7 @@ import { useLocale } from "@/i18n/LocaleContext";
 import type { Product } from "@/lib/types";
 import { ProductCard } from "../product/ProductCard";
 import { Skeleton } from "../ui/Skeleton";
+import { Reveal } from "../ui/Reveal";
 
 // NOTA: o backend ainda não tem um campo "destaque"/"featured" no Produto (ver README.md).
 // Enquanto essa opção não existir na base de dados, "Destaques" mostra os produtos mais
@@ -22,14 +23,14 @@ export function FeaturedSection() {
 
   return (
     <section className="py-4">
-      <h2 className="mb-3 px-4 text-xl font-bold">{t("home.featured")}</h2>
+      <Reveal as="h2" variant="fade" className="mb-3 px-4 text-xl font-bold">{t("home.featured")}</Reveal>
       <div className="no-scrollbar flex snap-x gap-3 overflow-x-auto px-4">
         {products === null
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-40 shrink-0 rounded-2xl sm:w-48" />)
-          : products.map((p) => (
-            <div key={p.id} className="w-40 shrink-0 snap-start sm:w-48">
+          : products.map((p, i) => (
+            <Reveal key={p.id} delay={i * 70} className="w-40 shrink-0 snap-start sm:w-48">
               <ProductCard product={p} />
-            </div>
+            </Reveal>
           ))}
       </div>
     </section>

@@ -28,10 +28,10 @@ export function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
-      <Link to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full bg-elevated">
+    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition duration-300 [@media(hover:hover)]:hover:-translate-y-1 [@media(hover:hover)]:hover:border-primary/40 [@media(hover:hover)]:hover:shadow-xl [@media(hover:hover)]:hover:shadow-black/50 motion-reduce:transition-none motion-reduce:hover:transform-none">
+      <Link to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full overflow-hidden bg-elevated">
         {image ? (
-          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${outOfStock ? "opacity-50" : ""}`} />
+          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out motion-reduce:transition-none [@media(hover:hover)]:group-hover:scale-105 ${outOfStock ? "opacity-50" : ""}`} />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={32} height={32} /></div>
         )}
@@ -50,7 +50,7 @@ export function ProductCard({ product }: { product: Product }) {
             onClick={onAdd}
             disabled={outOfStock}
             aria-label={`${t("product.addToCart")}: ${product.name}`}
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
+            className={`press flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
           >
             {added ? <CheckIcon width={17} height={17} /> : <CartIcon width={17} height={17} />}
           </button>
