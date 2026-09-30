@@ -121,3 +121,9 @@ export function EyeIcon(props: SVGProps<SVGSVGElement>) {
 export function EyeOffIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><path d="M3 3l18 18" /><path d="M10.6 6.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.5 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4-.9" /><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" /></svg>);
 }
+export function CameraIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2a1 1 0 0 0 .8-.4l.9-1.2a1 1 0 0 1 .8-.4h3.6a1 1 0 0 1 .8.4l.9 1.2a1 1 0 0 0 .8.4h1.2A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-8Z" /><circle cx="12" cy="12.5" r="3.3" /></svg>);
+}
+export function ImageIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.6" /><path d="m4 17 4.6-4.4a1.5 1.5 0 0 1 2.1 0L14 16l1.6-1.5a1.5 1.5 0 0 1 2.1 0L20 17" /></svg>);
+}

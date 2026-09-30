@@ -1,6 +1,7 @@
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useState, type FormEvent } from "react";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { friendlyError, safeNext } from "@/lib/errors";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -9,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function LoginPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: `${t("auth.login")} · Twisisa Market`, noindex: true });
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

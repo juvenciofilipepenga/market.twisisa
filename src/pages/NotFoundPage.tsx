@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 import { useLocale } from "@/i18n/LocaleContext";
 import { Header } from "@/components/layout/Header";
 import { img } from "@/lib/images";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 export default function NotFoundPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: `404 · ${t("seo.notFound")} · Twisisa Market`, noindex: true });
   return (
     <main>
       <Header />

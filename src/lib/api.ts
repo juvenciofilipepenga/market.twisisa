@@ -1,4 +1,5 @@
 import type {
+  CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
   Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption
 } from "./types";
@@ -91,8 +92,13 @@ export const api = {
   },
   users: {
     me: (token: string) => request<Me>("/users/me", { token }),
-    updateMe: (token: string, payload: { name?: string; phone?: string | null }) =>
-      request<{ id: string; name: string; email: string; phone: string | null }>("/users/me", { method: "PATCH", body: payload, token })
+    updateMe: (token: string, payload: { name?: string; phone?: string | null; avatarUrl?: string | null }) =>
+      request<{ id: string; name: string; email: string; phone: string | null; avatarUrl?: string | null }>("/users/me", { method: "PATCH", body: payload, token })
+  },
+  uploads: {
+    // Pede uma assinatura de curta duração para enviar UMA imagem ao Cloudinary (ver lib/avatar.ts).
+    sign: (token: string, folder: "avatars" | "site") =>
+      request<CloudinarySignature>("/uploads/sign", { method: "POST", body: { folder }, token })
   },
   orders: {
     create: (items: Array<{ productId: string; quantity: number }>, token: string) =>

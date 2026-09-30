@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
 import type { AppNotification } from "@/lib/types";
@@ -12,6 +13,7 @@ import { BellIcon, CheckIcon } from "@/components/icons";
 
 export default function NotificationsPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: `${t("notifications.title")} · Twisisa Market`, noindex: true });
   const { token } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<AppNotification[] | null>(null);

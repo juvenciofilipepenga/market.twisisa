@@ -15,7 +15,7 @@ export function SessionWatcher() {
 
   useEffect(() => {
     function onUnauthorized() {
-      toast.show(t("toast.sessionExpired"), { tone: "error" });
+      toast.show(t("toast.sessionExpired"), { tone: "error", key: "session" });
       if (PROTECTED.some((p) => pathname.startsWith(p))) navigate(`/entrar?next=${encodeURIComponent(pathname + search)}`, { replace: true });
     }
     window.addEventListener("twisisa:unauthorized", onUnauthorized);

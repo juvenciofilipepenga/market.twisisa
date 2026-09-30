@@ -1,4 +1,6 @@
 import { useSearchParams } from "react-router-dom";
+import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { Header } from "@/components/layout/Header";
 import { CategoryChips } from "@/components/layout/CategoryChips";
 import { Hero } from "@/components/home/Hero";
@@ -8,7 +10,15 @@ import { CatalogSection } from "@/components/home/CatalogSection";
 
 export default function HomePage() {
   const [searchParams] = useSearchParams();
-  const hasFilter = Boolean(searchParams.get("search") || searchParams.get("categoryId"));
+  const { t } = useLocale();
+  const search = searchParams.get("search");
+  const hasFilter = Boolean(search || searchParams.get("categoryId"));
+  // Resultados de pesquisa e filtros não se indexam (conteúdo repetido); a página principal sim.
+  useDocumentMeta({
+    title: search ? `${t("catalog.resultsFor")} “${search}” · Twisisa Market` : t("seo.home.title"),
+    description: t("seo.home.description"),
+    noindex: hasFilter
+  });
 
   return (
     <main className="pb-6">

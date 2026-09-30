@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useCart } from "@/cart/CartContext";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
@@ -14,12 +15,15 @@ import { BoxIcon, MinusIcon, PlusIcon, TrashIcon } from "@/components/icons";
 
 export default function CartPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: `${t("cart.title")} · Twisisa Market`, noindex: true });
   const { items, count, subtotal, updateQuantity, removeItem, restoreItem, clear } = useCart();
   const { token } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Remoções seguidas (janela de 6 s) juntam-se num só aviso, e um só "Desfazer" repõe todas.
+  const removedBatch = useRef<{ at: number; list: Array<{ item: (typeof items)[number]; index: number }> }>({ at: 0, list: [] });
   useBottomBarOffset(items.length > 0, 84);
 
   async function checkout() {
@@ -41,7 +45,18 @@ export default function CartPage() {
     const item = items[index];
     if (!item) return;
     removeItem(productId);
-    toast.show(`${item.name} ${t("toast.removed")}`, { action: { label: t("common.undo"), onClick: () => restoreItem(item, index) } });
+    const batch = removedBatch.current;
+    if (Date.now() - batch.at > 6000) batch.list = [];
+    batch.at = Date.now();
+    batch.list.push({ item, index });
+    const snapshot = [...batch.list];
+    toast.show(snapshot.length === 1 ? `${item.name} ${t("toast.removed")}` : `${snapshot.length} ${t("toast.removedMany")}`, {
+      key: "cart-remove",
+      action: {
+        label: t("common.undo"),
+        onClick: () => { [...snapshot].reverse().forEach((r) => restoreItem(r.item, r.index)); removedBatch.current = { at: 0, list: [] }; }
+      }
+    });
   }
 
   const checkoutButton = (className: string) => (

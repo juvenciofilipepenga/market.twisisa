@@ -74,8 +74,20 @@ export interface Me {
   name: string;
   email: string;
   phone: string | null;
+  /** URL da foto de perfil (Cloudinary). Ainda depende do campo avatarUrl no backend. */
+  avatarUrl?: string | null;
   status: UserStatus;
   createdAt: string;
+}
+
+/** Resposta de POST /uploads/sign: tudo o que o browser precisa para enviar UMA imagem ao Cloudinary. O segredo nunca sai do backend. */
+export interface CloudinarySignature {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+  publicId?: string;
 }
 
 export interface AdminUser {

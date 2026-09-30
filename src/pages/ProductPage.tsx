@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { flyToCart } from "@/lib/fx";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { SITE_URL } from "@/config/site";
 import { img } from "@/lib/images";
 import { formatMzn } from "@/lib/format";
 import type { Product } from "@/lib/types";
@@ -21,7 +23,7 @@ export default function ProductPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLocale();
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const toast = useToast();
   const [state, setState] = useState<State>({ kind: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -31,6 +33,29 @@ export default function ProductPage() {
   const [barVisible, setBarVisible] = useState(false);
   const gallery = useRef<HTMLDivElement>(null);
   const buyBox = useRef<HTMLDivElement>(null);
+
+  const loaded = state.kind === "ready" ? state.product : null;
+  const loadedImage = loaded ? (loaded.images.find((i) => i.isPrimary) ?? loaded.images[0])?.url : undefined;
+  useDocumentMeta({
+    title: loaded ? `${loaded.name} · Twisisa Market` : `${t("nav.home")} · Twisisa Market`,
+    description: loaded?.description ? loaded.description.replace(/\s+/g, " ").slice(0, 155) : t("seo.home.description"),
+    image: loadedImage ?? null,
+    noindex: !loaded,
+    jsonLd: loaded ? {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: loaded.name,
+      description: loaded.description ?? undefined,
+      image: loaded.images.map((i) => i.url),
+      offers: {
+        "@type": "Offer",
+        url: `${SITE_URL}/produto/${loaded.id}`,
+        priceCurrency: "MZN",
+        price: Number(loaded.priceMzn),
+        availability: loaded.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+      }
+    } : null
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -79,11 +104,15 @@ export default function ProductPage() {
   }
 
   function onAdd(product: Product) {
+    const inCart = Math.min(product.stock, (items.find((i) => i.productId === product.id)?.quantity ?? 0) + quantity);
     addItem(product, quantity);
     setAdded(true);
     const image = product.images.find((i) => i.isPrimary) ?? product.images[0];
     flyToCart(gallery.current, image?.url ?? null);
-    toast.show(`${product.name} ${t("toast.added")}`, { action: { label: t("cart.view"), onClick: () => navigate("/carrinho") } });
+    toast.show(inCart > 1 ? `${product.name} · ${inCart} ${t("toast.inCart")}` : `${product.name} ${t("toast.added")}`, {
+      key: `cart:${product.id}`,
+      action: { label: t("cart.view"), onClick: () => navigate("/carrinho") }
+    });
   }
 
   return (

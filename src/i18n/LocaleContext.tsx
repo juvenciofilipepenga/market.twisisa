@@ -18,6 +18,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     if (stored === "pt" || stored === "en") setLocaleState(stored);
   }, []);
 
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
+
   function setLocale(next: Locale) {
     setLocaleState(next);
     window.localStorage.setItem(STORAGE_KEY, next);

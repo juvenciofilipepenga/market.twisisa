@@ -5,11 +5,13 @@ import { useAuth, ApiError } from "@/auth/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { SpeedLines } from "@/components/brand/SpeedLines";
 import { img } from "@/lib/images";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 const input = "w-full rounded-xl border border-border bg-surface px-3.5 py-3 text-sm placeholder:text-ink-faint focus:border-ink-faint focus:outline-none";
 
 export default function AdminLoginPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: "Admin · Twisisa Market", noindex: true });
   const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");

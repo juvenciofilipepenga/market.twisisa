@@ -3,15 +3,85 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <title>Twisisa Market — Compre online em Moçambique</title>
+    <meta name="description" content="Compre online com M-Pesa, e-Mola ou cartão e acompanhe a sua encomenda. Twisisa Market, a sua loja online em Moçambique." />
+    <!-- Se mudar de domínio, actualize este URL, o og:url/og:image abaixo, public/robots.txt, public/sitemap.xml e src/config/site.ts -->
+    <link rel="canonical" href="https://market-twisisa.vercel.app/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <!-- Aparência do navegador e da app instalada -->
     <meta name="theme-color" content="#140F0E" />
-    <link rel="icon" href="/logo.png" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="application-name" content="Twisisa Market" />
+    <meta name="apple-mobile-web-app-title" content="Twisisa" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+
+    <!-- Pré-visualização ao partilhar o link (WhatsApp, Facebook, LinkedIn…) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Twisisa Market" />
+    <meta property="og:locale" content="pt_PT" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:title" content="Twisisa Market — Compre online em Moçambique" />
+    <meta property="og:description" content="Pague com M-Pesa, e-Mola ou cartão e acompanhe a sua encomenda." />
+    <meta property="og:url" content="https://market-twisisa.vercel.app/" />
+    <meta property="og:image" content="https://market-twisisa.vercel.app/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A mascote do Twisisa Market com um telemóvel a mostrar um pagamento confirmado" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Twisisa Market — Compre online em Moçambique" />
+    <meta name="twitter:description" content="Pague com M-Pesa, e-Mola ou cartão e acompanhe a sua encomenda." />
+    <meta name="twitter:image" content="https://market-twisisa.vercel.app/og-image.jpg" />
+
+    <!-- Dados estruturados: ajuda o Google a mostrar o nome, o logótipo e a caixa de pesquisa da loja -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://market-twisisa.vercel.app/#organization",
+            "name": "Twisisa Market",
+            "url": "https://market-twisisa.vercel.app/",
+            "logo": "https://market-twisisa.vercel.app/icons/icon-512.png",
+            "areaServed": "MZ"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://market-twisisa.vercel.app/#website",
+            "url": "https://market-twisisa.vercel.app/",
+            "name": "Twisisa Market",
+            "inLanguage": ["pt", "en"],
+            "publisher": { "@id": "https://market-twisisa.vercel.app/#organization" },
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://market-twisisa.vercel.app/?search={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          }
+        ]
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <title>Twisisa Market</title>
   </head>
   <body class="bg-bg text-ink font-sans antialiased">
     <div id="root"></div>
+    <noscript>
+      <div style="padding:2rem;font-family:sans-serif;color:#F8F2ED;background:#140F0E;min-height:100vh">
+        <h1>Twisisa Market</h1>
+        <p>Para usar a loja, active o JavaScript no seu navegador. / To use the store, please enable JavaScript in your browser.</p>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

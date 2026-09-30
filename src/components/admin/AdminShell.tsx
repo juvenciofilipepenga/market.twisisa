@@ -1,3 +1,4 @@
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useLocale } from "@/i18n/LocaleContext";
@@ -16,6 +17,7 @@ const NAV = [
 ] as const;
 
 export function AdminShell({ children }: { children: ReactNode }) {
+  useDocumentMeta({ title: "Admin · Twisisa Market", noindex: true });
   const { t } = useLocale();
   const { user, logout } = useAuth();
   const location = useLocation();

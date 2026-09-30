@@ -98,9 +98,9 @@ export default function ChatWidget() {
           onClick={() => setOpen(true)}
           aria-label={t("chat.title")}
           style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--toast-offset, 16px))" }}
-          className="press fixed right-4 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-surface shadow-lg shadow-black/40"
+          className="press fixed right-4 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-primary-active shadow-lg shadow-black/40"
         >
-          <img src={img.mascotPayment} alt="" className="h-full w-full bg-primary-active object-cover object-[50%_12%]" />
+          <img src={img.mascotSupportAvatar} alt="" width={256} height={256} className="h-full w-full object-cover" />
         </button>
       )}
 
@@ -108,7 +108,7 @@ export default function ChatWidget() {
         <div className="fixed inset-0 z-50 flex items-end justify-end bg-black/40 sm:p-4">
           <div className="flex h-[80vh] w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-surface sm:h-[600px] sm:max-w-sm sm:rounded-2xl">
             <div className="flex items-center gap-3 border-b border-border bg-elevated p-3">
-              <img src={img.mascotPayment} alt="" className="h-10 w-10 rounded-full bg-primary-active object-cover object-[50%_12%]" />
+              <img src={img.mascotSupportAvatar} alt="" width={256} height={256} className="h-10 w-10 shrink-0 rounded-full bg-primary-active object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold">{t("chat.title")}</p>
                 {conversation?.status === "ESCALATED" && <p className="text-xs text-warning">{t("chat.escalated")}</p>}
@@ -121,7 +121,7 @@ export default function ChatWidget() {
 
             {!token ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-                <img src={img.mascotPayment} alt="" className="h-28 w-28 object-contain" />
+                <img src={img.mascotSupport} alt="" width={522} height={600} className="h-32 w-auto object-contain" />
                 <p className="text-sm text-ink-muted">{t("chat.loginRequired")}</p>
                 <div className="flex gap-2">
                   <Link to="/entrar" onClick={() => setOpen(false)} className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white">{t("auth.login")}</Link>

@@ -11,6 +11,9 @@ export const img = {
   mascotCelebrate: u("mascote-celebrar"),
   mascotConfused: u("mascote-confuso"),
   mascotPayment: u("mascote-pagamento"),
+  // Só o chat usa estas duas (a mascote original, com o balão de conversa): nenhuma outra parte do site as repete.
+  mascotSupport: u("mascote-suporte"),
+  mascotSupportAvatar: u("mascote-suporte-avatar"),
   cart: u("obj-carrinho"),
   box: u("obj-caixa"),
   bag: u("obj-saco"),

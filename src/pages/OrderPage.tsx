@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { api, ApiError, type InitiatePaymentPayload } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
@@ -28,6 +29,7 @@ export default function OrderPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLocale();
+  useDocumentMeta({ title: `${t("order.title")} · Twisisa Market`, noindex: true });
   const { token } = useAuth();
   const location = useLocation();
   const toast = useToast();
@@ -116,7 +118,7 @@ export default function OrderPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast.show(t("toast.invoiceError"), { tone: "error" });
+      toast.show(t("toast.invoiceError"), { tone: "error", key: "invoice" });
     }
   }
 

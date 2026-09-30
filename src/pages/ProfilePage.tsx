@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
 import { img } from "@/lib/images";
 import { detectLocation, type DetectedLocation } from "@/lib/geolocation";
+import { getLocalAvatar } from "@/lib/avatar";
 import { useCopy } from "@/lib/useCopy";
 import type { Me, ReferralInfo } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
@@ -13,21 +15,19 @@ import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ReferralCard } from "@/components/profile/ReferralCard";
+import { AvatarEditor } from "@/components/profile/AvatarEditor";
 import { ClipboardIcon, CheckIcon, LogOutIcon, PinIcon } from "@/components/icons";
 
 const LOCATION_STORAGE_KEY = "twisisa.deliveryLocation";
 
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "")).toUpperCase() || "?";
-}
-
 export default function ProfilePage() {
   const { t, locale } = useLocale();
+  useDocumentMeta({ title: `${t("profile.title")} · Twisisa Market`, noindex: true });
   const { token, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [me, setMe] = useState<Me | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [referral, setReferral] = useState<ReferralInfo | null>(null);
@@ -38,7 +38,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!token) return;
-    api.users.me(token).then((data) => { setMe(data); setName(data.name); setPhone(data.phone ?? ""); }).catch(() => { /* 401 já é tratado globalmente */ });
+    api.users.me(token).then((data) => { setMe(data); setName(data.name); setPhone(data.phone ?? ""); setPhoto(data.avatarUrl ?? getLocalAvatar()); }).catch(() => { /* 401 já é tratado globalmente */ });
     api.referrals.me(token).then(setReferral).catch(() => setReferral(null));
     try {
       const stored = window.localStorage.getItem(LOCATION_STORAGE_KEY);
@@ -50,9 +50,9 @@ export default function ProfilePage() {
     if (!token) return;
     try {
       await api.users.updateMe(token, { name, phone: phone || null });
-      toast.show(t("toast.saved"));
+      toast.show(t("toast.saved"), { key: "profile" });
     } catch {
-      toast.show(t("common.error"), { tone: "error" });
+      toast.show(t("common.error"), { tone: "error", key: "profile" });
     }
   }
 
@@ -79,13 +79,11 @@ export default function ProfilePage() {
     <main className="pb-10">
       <Header />
       <div className="mx-auto max-w-lg px-4 py-4">
-        {/* Capa + avatar com as iniciais (a foto de perfil chega com o upload para o Cloudinary) */}
+        {/* Capa + avatar (foto ou iniciais) com o botão de câmara */}
         <section className="overflow-hidden rounded-2xl border border-border bg-surface">
           <div className="h-28 bg-primary-active bg-cover bg-center sm:h-32" style={{ backgroundImage: `url(${img.profileCover})` }} />
           <div className="px-5 pb-5">
-            <div className="-mt-10 flex h-20 w-20 items-center justify-center rounded-full border-4 border-surface bg-primary-active font-display text-3xl font-extrabold text-white" aria-hidden="true">
-              {me ? initials(me.name) : ""}
-            </div>
+            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} onChange={setPhoto} />}
             {me ? (
               <div className="mt-3">
                 <h1 className="text-2xl font-extrabold leading-tight">{me.name}</h1>

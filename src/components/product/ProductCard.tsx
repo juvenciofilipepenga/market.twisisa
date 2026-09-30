@@ -12,7 +12,7 @@ const LOW_STOCK = 5;
 
 export function ProductCard({ product }: { product: Product }) {
   const { t } = useLocale();
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const toast = useToast();
   const navigate = useNavigate();
   const [added, setAdded] = useState(false);
@@ -28,10 +28,15 @@ export function ProductCard({ product }: { product: Product }) {
   }, [added]);
 
   function onAdd() {
+    const inCart = Math.min(product.stock, (items.find((i) => i.productId === product.id)?.quantity ?? 0) + 1);
     addItem(product);
     setAdded(true);
     flyToCart(imageBox.current, image?.url ?? null);
-    toast.show(`${product.name} ${t("toast.added")}`, { action: { label: t("cart.view"), onClick: () => navigate("/carrinho") } });
+    // Mesma chave por produto: adicionar de novo actualiza o aviso ("· 3 no carrinho") em vez de criar outro.
+    toast.show(inCart > 1 ? `${product.name} · ${inCart} ${t("toast.inCart")}` : `${product.name} ${t("toast.added")}`, {
+      key: `cart:${product.id}`,
+      action: { label: t("cart.view"), onClick: () => navigate("/carrinho") }
+    });
   }
 
   return (

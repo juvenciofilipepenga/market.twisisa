@@ -73,6 +73,10 @@ html, body { background-color: #140F0E; color: #F8F2ED; }
 /* Avisos */
 @keyframes toast-in { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
 .toast-in { animation: toast-in 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.toast-progress { animation-name: toast-progress; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-4px) scale(0.96); } to { opacity: 1; transform: none; } }
+.menu-in { animation: menu-in 0.14s ease-out backwards; transform-origin: top left; }
 
 /* Bilhete do código de convite */
 .ticket {
@@ -87,7 +91,7 @@ html, body { background-color: #140F0E; color: #F8F2ED; }
 
 /* Quem pede menos movimento fica sem nenhuma destas animações (o spinner de carregamento mantém-se: é informação) */
 @media (prefers-reduced-motion: reduce) {
-  .page-in, .rise, .speed-line, .bump, .pop, .toast-in,
+  .page-in, .rise, .speed-line, .bump, .pop, .toast-in, .menu-in,
   .modal-backdrop[data-state], .modal-panel[data-state] { animation: none !important; }
   .press { transition: none; }
   .px { transform: rotate(var(--rot, 0deg)); }

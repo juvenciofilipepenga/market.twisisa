@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import { GiftIcon } from "@/components/icons";
 import { useLocale } from "@/i18n/LocaleContext";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { friendlyError, safeNext } from "@/lib/errors";
 import { AuthShell } from "@/components/auth/AuthShell";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 
 export default function RegisterPage() {
   const { t } = useLocale();
+  useDocumentMeta({ title: `${t("auth.register")} · Twisisa Market`, noindex: true });
   const { register } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

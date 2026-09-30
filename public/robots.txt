@@ -1,0 +1,12 @@
+# Áreas privadas ou sem valor para pesquisa ficam fora. O resto da loja pode ser indexado.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /perfil
+Disallow: /carrinho
+Disallow: /encomenda
+Disallow: /notificacoes
+Disallow: /entrar
+Disallow: /registar
+
+Sitemap: https://market-twisisa.vercel.app/sitemap.xml

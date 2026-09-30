@@ -4,11 +4,13 @@ import { Header } from "@/components/layout/Header";
 import { LEGAL, type LegalKey } from "@/content/legal";
 import { COMPANY } from "@/config/company";
 import { img } from "@/lib/images";
+import { useDocumentMeta } from "@/lib/useDocumentMeta";
 
 export default function LegalPage({ doc }: { doc: LegalKey }) {
   const { t, locale } = useLocale();
   const content = LEGAL[locale][doc];
   const [active, setActive] = useState(0);
+  useDocumentMeta({ title: `${content.title} · Twisisa Market`, description: content.sections[0]?.body[0] });
   const art = doc === "privacy" ? img.shield : doc === "terms" ? img.tag : null;
 
   // Índice lateral acompanha a secção visível
