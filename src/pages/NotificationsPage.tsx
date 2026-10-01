@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
-import { useAuth } from "@/auth/AuthContext";
-import { api } from "@/lib/api";
-import type { AppNotification } from "@/lib/types";
+import { useNotifications } from "@/notifications/NotificationsContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
@@ -14,29 +11,8 @@ import { BellIcon, CheckIcon } from "@/components/icons";
 export default function NotificationsPage() {
   const { t } = useLocale();
   useDocumentMeta({ title: `${t("notifications.title")} · Twisisa Market`, noindex: true });
-  const { token } = useAuth();
   const navigate = useNavigate();
-  const [items, setItems] = useState<AppNotification[] | null>(null);
-
-  useEffect(() => {
-    if (!token) { setItems([]); return; }
-    api.notifications.list(token).then((res) => setItems(res.data)).catch(() => setItems([]));
-  }, [token]);
-
-  async function markRead(id: string) {
-    if (!token) return;
-    try {
-      const updated = await api.notifications.markRead(id, token);
-      setItems((prev) => prev?.map((n) => (n.id === id ? updated : n)) ?? null);
-    } catch { /* falhou: fica por ler, o cliente pode tentar de novo */ }
-  }
-
-  async function markAll() {
-    const unread = (items ?? []).filter((n) => !n.readAt);
-    await Promise.all(unread.map((n) => markRead(n.id)));
-  }
-
-  const unreadCount = (items ?? []).filter((n) => !n.readAt).length;
+  const { items, unread: unreadCount, markRead, markAll } = useNotifications();
 
   return (
     <main className="pb-10">

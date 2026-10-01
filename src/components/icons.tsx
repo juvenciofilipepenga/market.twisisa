@@ -105,6 +105,11 @@ export function PhoneIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z" /></svg>);
 }
 
+// --- Instalação ---
+export function DownloadIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M12 4v11m0 0 4-4m-4 4-4-4" /><path d="M5 20h14" /></svg>);
+}
+
 // --- Perfil / partilha ---
 export function ShareIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><circle cx="18" cy="5" r="2.6" /><circle cx="6" cy="12" r="2.6" /><circle cx="18" cy="19" r="2.6" /><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4" /></svg>);

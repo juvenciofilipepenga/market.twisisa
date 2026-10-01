@@ -18,6 +18,8 @@ import LegalPage from "./pages/legal/LegalPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
 import { SessionWatcher } from "./components/layout/SessionWatcher";
 import { ToastProvider } from "./components/ui/Toast";
+import { NotificationsProvider } from "./notifications/NotificationsContext";
+import InstallPage from "./pages/InstallPage";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -37,6 +39,7 @@ export default function App() {
         <ToastProvider>
         <AuthProvider>
           <CartProvider>
+            <NotificationsProvider>
             <SessionWatcher />
             <Routes>
               <Route element={<PublicLayout />}>
@@ -46,6 +49,7 @@ export default function App() {
                 <Route path="/encomenda/:id" element={<OrderPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
                 <Route path="/notificacoes" element={<NotificationsPage />} />
+                <Route path="/instalar" element={<InstallPage />} />
                 <Route path="/termos" element={<LegalPage doc="terms" />} />
                 <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
                 <Route path="/cookies" element={<LegalPage doc="cookies" />} />
@@ -79,6 +83,7 @@ export default function App() {
             <ErrorBoundary mode="silent">
               <Suspense fallback={null}><ChatWidget /></Suspense>
             </ErrorBoundary>
+            </NotificationsProvider>
           </CartProvider>
         </AuthProvider>
         </ToastProvider>

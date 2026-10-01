@@ -4,6 +4,7 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
+import { useNotifications } from "@/notifications/NotificationsContext";
 import { CART_BUMP_EVENT } from "@/lib/fx";
 import { useHideOnScroll } from "@/lib/useHideOnScroll";
 import type { Product } from "@/lib/types";
@@ -29,7 +30,7 @@ export function Header() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
-  const [unread, setUnread] = useState(0);
+  const { unread } = useNotifications();
   const [suggestions, setSuggestions] = useState<Product[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [bumpKey, setBumpKey] = useState(0);
@@ -37,13 +38,6 @@ export function Header() {
   const boxRef = useRef<HTMLDivElement>(null);
   // Esconde ao descer, volta ao subir; nunca some enquanto se pesquisa.
   const hidden = useHideOnScroll(searchFocused || showSuggestions);
-
-  useEffect(() => {
-    if (!token) { setUnread(0); return; }
-    api.notifications.list(token).then((res) => {
-      setUnread(res.data.filter((n) => !n.readAt).length);
-    }).catch(() => { /* silencioso: o número de notificações não é crítico */ });
-  }, [token]);
 
   // O produto que "voa" para o carrinho avisa aqui quando aterra, e o número dá um pequeno salto.
   useEffect(() => {

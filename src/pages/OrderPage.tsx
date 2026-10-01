@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { saveBlob } from "@/lib/download";
 import { useAuth } from "@/auth/AuthContext";
 import { api, ApiError, type InitiatePaymentPayload } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
@@ -111,12 +112,7 @@ export default function OrderPage() {
     if (!token || !order || order === "not-found" || !order.invoice) return;
     try {
       const blob = await api.invoices.downloadPdf(order.invoice.id, token);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${order.invoice.invoiceNumber}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      saveBlob(blob, `${order.invoice.invoiceNumber}.pdf`);
     } catch {
       toast.show(t("toast.invoiceError"), { tone: "error", key: "invoice" });
     }

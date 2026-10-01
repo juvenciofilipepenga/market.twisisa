@@ -9,7 +9,7 @@ import {
   type ReactNode,
   type TouchEvent,
 } from "react";
-import { CheckIcon, XIcon } from "../icons";
+import { BellIcon, CheckIcon, XIcon } from "../icons";
 
 type Tone = "success" | "error" | "info";
 
@@ -271,11 +271,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
                   current.tone === "error"
                     ? "bg-danger/15 text-danger"
-                    : "bg-success/15 text-success"
+                    : current.tone === "info"
+                      ? "bg-primary-soft text-primary-text"
+                      : "bg-success/15 text-success"
                 }`}
               >
                 {current.tone === "error" ? (
                   <XIcon width={14} height={14} />
+                ) : current.tone === "info" ? (
+                  <BellIcon width={14} height={14} />
                 ) : (
                   <CheckIcon width={14} height={14} />
                 )}

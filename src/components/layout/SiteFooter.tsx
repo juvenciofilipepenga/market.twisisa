@@ -72,6 +72,7 @@ export function SiteFooter() {
           )}
           <li><Link to="/carrinho" className={link}>{t("nav.cart")}</Link></li>
           <li><Link to="/notificacoes" className={link}>{t("nav.notifications")}</Link></li>
+          <li><Link to="/instalar" className={link}>{t("install.nav")}</Link></li>
         </Column>
 
         <Column title={t("footer.legal")}>
