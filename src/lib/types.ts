@@ -275,3 +275,16 @@ export interface AdminStats {
   catalog: { activeProducts: number; lowStockThreshold: number };
   recentOrders: Array<{ id: string; orderNumber: string; status: OrderStatus; totalMzn: number; createdAt: string; customer: string }>;
 }
+
+/** Linha de GET /orders (as encomendas do próprio cliente): resumo leve; o detalhe vem de GET /orders/:id. */
+export interface OrderSummary {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  totalMzn: string;
+  discountMzn: string;
+  createdAt: string;
+  invoice: { id: string; invoiceNumber: string } | null;
+  items: Array<{ productName: string; quantity: number }>;
+  _count: { items: number };
+}

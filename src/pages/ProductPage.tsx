@@ -237,7 +237,7 @@ export default function ProductPage() {
               </section>
 
               {/* Barra fixa: telemóvel, só quando o botão principal não está visível */}
-              <div className={`safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur transition-transform duration-300 motion-reduce:transition-none md:hidden ${barVisible ? "" : "translate-y-full"}`} aria-hidden={!barVisible}>
+              <div className={`bar-above-nav fixed inset-x-0 z-40 border-t border-border bg-bg/95 backdrop-blur transition-transform duration-300 motion-reduce:transition-none md:hidden ${barVisible ? "" : "translate-y-full"}`} aria-hidden={!barVisible}>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-xs text-ink-muted">{product.name}</p>

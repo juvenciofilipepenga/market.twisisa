@@ -86,14 +86,9 @@ export function Header() {
           </span>
         </Link>
 
-        {/* Telemóvel: carrinho, notificações e conta estão na barra inferior; aqui ficam só idioma (e a mira do
-            "voar para o carrinho", que aponta para o primeiro elemento visível com data-cart-target). */}
+        {/* Telemóvel: logo, notificações e idioma (carrinho e conta estão na barra inferior). Ecrã largo: também carrinho
+            e conta. A mira do "voar para o carrinho" é o primeiro elemento VISÍVEL com data-cart-target. */}
         <div className="order-2 ml-auto flex shrink-0 items-center gap-0.5 md:order-3 md:ml-0">
-          {token && (
-            <Link to="/notificacoes" className={`${iconButton} hidden md:flex`} aria-label={t("nav.notifications")}>
-              <BellIcon /><CountBadge value={unread} />
-            </Link>
-          )}
           <Link to="/carrinho" data-cart-target className={`${iconButton} hidden md:flex`} aria-label={t("nav.cart")}>
             <CartIcon /><CountBadge value={count} bumpKey={bumpKey} />
           </Link>
@@ -103,6 +98,12 @@ export function Header() {
             </Link>
           ) : (
             <Link to="/entrar" className="press ml-1 hidden h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover md:inline-flex">{t("auth.login")}</Link>
+          )}
+          {/* Notificações só existem para clientes (sessão iniciada) */}
+          {token && (
+            <Link to="/notificacoes" className={iconButton} aria-label={t("nav.notifications")}>
+              <BellIcon /><CountBadge value={unread} />
+            </Link>
           )}
           <LanguageToggle />
         </div>

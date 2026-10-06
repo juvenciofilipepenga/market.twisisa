@@ -125,7 +125,7 @@ export default function CartPage() {
       </div>
 
       {items.length > 0 && (
-        <div className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur md:hidden">
+        <div className="bar-above-nav fixed inset-x-0 z-40 border-t border-border bg-bg/95 backdrop-blur md:hidden">
           {(!token || error) && <p role={error ? "alert" : undefined} className={`px-4 pt-2 text-xs ${error ? "text-danger" : "text-warning"}`}>{error ?? t("cart.loginRequired")}</p>}
           <div className="flex items-center gap-3 px-4 py-3">
             <div><p className="text-xs text-ink-muted">{t("cart.total")}</p><p className="font-display text-xl font-extrabold leading-tight">{formatMzn(subtotal)}</p></div>

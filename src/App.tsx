@@ -17,6 +17,8 @@ import NotFoundPage from "./pages/NotFoundPage";
 import LegalPage from "./pages/legal/LegalPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import MorePage from "./pages/MorePage";
+import OrdersPage from "./pages/OrdersPage";
 import { SessionWatcher } from "./components/layout/SessionWatcher";
 import { ToastProvider } from "./components/ui/Toast";
 import { NotificationsProvider } from "./notifications/NotificationsContext";
@@ -54,6 +56,8 @@ export default function App() {
                 <Route path="/notificacoes" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
                 <Route path="/instalar" element={<InstallPage />} />
                 <Route path="/definicoes" element={<SettingsPage />} />
+                <Route path="/mais" element={<MorePage />} />
+                <Route path="/pedidos" element={<RequireAuth><OrdersPage /></RequireAuth>} />
                 <Route path="/pesquisa" element={<SearchPage />} />
                 <Route path="/termos" element={<LegalPage doc="terms" />} />
                 <Route path="/privacidade" element={<LegalPage doc="privacy" />} />

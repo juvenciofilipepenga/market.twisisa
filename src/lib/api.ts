@@ -1,7 +1,7 @@
 import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary
 } from "./types";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
@@ -37,16 +37,22 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       body = JSON.stringify(options.body);
     }
   }
-  const res = await fetch(`${API_URL}${path}`, {
-    method: options.method ?? "GET",
-    headers,
-    body,
-    cache: "no-store"
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      method: options.method ?? "GET",
+      headers,
+      body,
+      cache: "no-store"
+    });
+  } catch {
+    // Sem rede, CORS, ou a plataforma recusou o pedido (ex.: corpo acima do limite da Vercel) antes de chegar à API.
+    throw new ApiError(0, "NETWORK_ERROR");
+  }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-  const code = (data as { error?: string }).error;
+  const code = (data as { error?: string }).error ?? (res.status === 413 ? "FILE_TOO_LARGE" : undefined);
   // Token inválido, ou conta suspensa/bloqueada: a sessão guardada já não vale.
   if (options.token && (res.status === 401 || (res.status === 403 && code === "ACCOUNT_RESTRICTED"))) {
     window.dispatchEvent(new Event("twisisa:unauthorized"));
@@ -105,6 +111,8 @@ export const api = {
   orders: {
     create: (items: Array<{ productId: string; variantId?: string; quantity: number }>, token: string) =>
       request<Order>("/orders", { method: "POST", body: { items }, token }),
+    list: (token: string, params: { page?: number; limit?: number; invoiced?: boolean } = {}) =>
+      request<PaginatedResponse<OrderSummary>>(`/orders${qs(params)}`, { token }),
     get: (id: string, token: string) => request<Order>(`/orders/${id}`, { token }),
     cancel: (id: string, reason: string, token: string) =>
       request<Order>(`/orders/${id}/cancel`, { method: "POST", body: { reason }, token })

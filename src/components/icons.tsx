@@ -132,3 +132,11 @@ export function CameraIcon(props: SVGProps<SVGSVGElement>) {
 export function ImageIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" /><circle cx="9" cy="10" r="1.6" /><path d="m4 17 4.6-4.4a1.5 1.5 0 0 1 2.1 0L14 16l1.6-1.5a1.5 1.5 0 0 1 2.1 0L20 17" /></svg>);
 }
+
+// --- Navegação inferior e "Mais" ---
+export function MoreIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth="3" /></svg>);
+}
+export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0" /><circle cx="15" cy="6" r="2.2" /><circle cx="9" cy="12" r="2.2" /><circle cx="17" cy="18" r="2.2" /></svg>);
+}

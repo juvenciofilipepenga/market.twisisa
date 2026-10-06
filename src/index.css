@@ -26,6 +26,9 @@ html, body { background-color: #140F0E; color: #F8F2ED; }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 /* Espaço reservado ao fim da página para a barra inferior não tapar o último conteúdo */
+/* Barra fixa de acção (produto, carrinho): sobe acima da barra inferior; sem ela, respeita a área segura do ecrã */
+.bar-above-nav { bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+:root[data-bottom-nav] .bar-above-nav { bottom: calc(var(--nav-h, 0px) + env(safe-area-inset-bottom, 0px)); padding-bottom: 0; }
 .pb-nav-6 { padding-bottom: calc(var(--nav-h, 0px) + env(safe-area-inset-bottom, 0px) + 1.5rem); }
 .pb-nav { padding-bottom: calc(var(--nav-h, 0px) + env(safe-area-inset-bottom, 0px)); }
 
