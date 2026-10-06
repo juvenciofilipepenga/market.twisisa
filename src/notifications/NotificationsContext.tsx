@@ -18,6 +18,8 @@ interface NotificationsValue {
   unread: number;
   markRead: (id: string) => Promise<void>;
   markAll: () => Promise<void>;
+  remove: (id: string) => Promise<void>;
+  removeAll: () => Promise<void>;
 }
 
 const NotificationsContext = createContext<NotificationsValue | null>(null);
@@ -102,6 +104,18 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     } catch { /* falhou: fica por ler, o cliente pode tentar de novo */ }
   }, [token]);
 
+  const remove = useCallback(async (id: string) => {
+    if (!token) return;
+    await api.notifications.remove(id, token);
+    setItems((prev) => prev?.filter((n) => n.id !== id) ?? null);
+  }, [token]);
+
+  const removeAll = useCallback(async () => {
+    if (!token) return;
+    await api.notifications.removeAll(token);
+    setItems([]);
+  }, [token]);
+
   const markAll = useCallback(async () => {
     const pending = (items ?? []).filter((n) => !n.readAt);
     await Promise.all(pending.map((n) => markRead(n.id)));
@@ -109,7 +123,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   const unread = useMemo(() => (items ?? []).filter((n) => !n.readAt).length, [items]);
 
-  const value = useMemo<NotificationsValue>(() => ({ items, unread, markRead, markAll }), [items, unread, markRead, markAll]);
+  const value = useMemo<NotificationsValue>(() => ({ items, unread, markRead, markAll, remove, removeAll }), [items, unread, markRead, markAll, remove, removeAll]);
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>;
 }

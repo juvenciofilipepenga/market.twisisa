@@ -1,8 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { Product } from "../lib/types";
+import type { Product, ProductVariant } from "../lib/types";
 
 export interface CartItem {
   productId: string;
+  variantId: string | null;
+  colorHex: string | null;
+  size: string | null;
   name: string;
   priceMzn: string;
   quantity: number;
@@ -14,9 +17,9 @@ interface CartContextValue {
   items: CartItem[];
   count: number;
   subtotal: number;
-  addItem: (product: Product, quantity?: number) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  removeItem: (productId: string) => void;
+  addItem: (product: Product, quantity?: number, variant?: ProductVariant) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string | null) => void;
+  removeItem: (productId: string, variantId?: string | null) => void;
   /** Volta a pôr um item removido ("Desfazer"), na posição original. */
   restoreItem: (item: CartItem, index?: number) => void;
   clear: () => void;
@@ -43,29 +46,29 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (hydrated) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  function addItem(product: Product, quantity = 1) {
+  function addItem(product: Product, quantity = 1, variant?: ProductVariant) {
     setItems((prev) => {
-      const existing = prev.find((i) => i.productId === product.id);
+      const variantId = variant?.id ?? null;
+      const existing = prev.find((i) => i.productId === product.id && i.variantId === variantId);
       const primaryImage = product.images.find((img) => img.isPrimary) ?? product.images[0];
       if (existing) {
-        const nextQty = Math.min(existing.quantity + quantity, product.stock || existing.quantity + quantity);
-        return prev.map((i) => (i.productId === product.id ? { ...i, quantity: nextQty } : i));
+        const maxStock = variant?.stock ?? product.stock;
+        const nextQty = Math.min(existing.quantity + quantity, maxStock || existing.quantity + quantity);
+        return prev.map((i) => (i.productId === product.id && i.variantId === variantId ? { ...i, quantity: nextQty } : i));
       }
       return [...prev, {
-        productId: product.id, name: product.name, priceMzn: product.priceMzn,
-        quantity, imageUrl: primaryImage?.url ?? null, stock: product.stock
+        productId: product.id, variantId, colorHex: variant?.colorHex ?? null, size: variant?.size ?? null,
+        name: product.name, priceMzn: product.priceMzn, quantity, imageUrl: primaryImage?.url ?? null, stock: variant?.stock ?? product.stock
       }];
     });
   }
 
-  function updateQuantity(productId: string, quantity: number) {
-    setItems((prev) => prev
-      .map((i) => (i.productId === productId ? { ...i, quantity: Math.max(1, Math.min(quantity, i.stock || quantity)) } : i))
-    );
+  function updateQuantity(productId: string, quantity: number, variantId: string | null = null) {
+    setItems((prev) => prev.map((i) => (i.productId === productId && i.variantId === variantId ? { ...i, quantity: Math.max(1, Math.min(quantity, i.stock || quantity)) } : i)));
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function removeItem(productId: string, variantId: string | null = null) {
+    setItems((prev) => prev.filter((i) => !(i.productId === productId && i.variantId === variantId)));
   }
 
   function restoreItem(item: CartItem, index?: number) {

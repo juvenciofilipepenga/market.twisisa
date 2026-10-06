@@ -16,10 +16,13 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LegalPage from "./pages/legal/LegalPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
+import { RequireAuth } from "./components/auth/RequireAuth";
 import { SessionWatcher } from "./components/layout/SessionWatcher";
 import { ToastProvider } from "./components/ui/Toast";
 import { NotificationsProvider } from "./notifications/NotificationsContext";
 import InstallPage from "./pages/InstallPage";
+import SettingsPage from "./pages/SettingsPage";
+import SearchPage from "./pages/SearchPage";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminLayout from "./pages/admin/AdminLayout";
@@ -46,10 +49,12 @@ export default function App() {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/produto/:id" element={<ProductPage />} />
                 <Route path="/carrinho" element={<CartPage />} />
-                <Route path="/encomenda/:id" element={<OrderPage />} />
-                <Route path="/perfil" element={<ProfilePage />} />
-                <Route path="/notificacoes" element={<NotificationsPage />} />
+                <Route path="/encomenda/:id" element={<RequireAuth><OrderPage /></RequireAuth>} />
+                <Route path="/perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />
+                <Route path="/notificacoes" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
                 <Route path="/instalar" element={<InstallPage />} />
+                <Route path="/definicoes" element={<SettingsPage />} />
+                <Route path="/pesquisa" element={<SearchPage />} />
                 <Route path="/termos" element={<LegalPage doc="terms" />} />
                 <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
                 <Route path="/cookies" element={<LegalPage doc="cookies" />} />

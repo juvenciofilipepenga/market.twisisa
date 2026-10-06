@@ -10,7 +10,7 @@ export function flyToCart(source: Element | null, imageUrl: string | null): void
   window.dispatchEvent(new Event(SHOW_HEADER_EVENT));
 
   const run = () => {
-    const target = document.querySelector("[data-cart-target]");
+    const target = Array.from(document.querySelectorAll("[data-cart-target]")).find((el) => el.getClientRects().length > 0) ?? null;
     if (!target) { bump(); return; }
     const a = source.getBoundingClientRect();
     const b = target.getBoundingClientRect();
@@ -36,7 +36,7 @@ export function flyToCart(source: Element | null, imageUrl: string | null): void
   };
 
   // Se o cabeçalho estava escondido (scroll para baixo), espera que ele volte antes de medir o destino.
-  const target = document.querySelector("[data-cart-target]");
+  const target = Array.from(document.querySelectorAll("[data-cart-target]")).find((el) => el.getClientRects().length > 0) ?? null;
   const hidden = !target || target.getBoundingClientRect().bottom <= 0;
   window.setTimeout(run, hidden ? 300 : 0);
 }

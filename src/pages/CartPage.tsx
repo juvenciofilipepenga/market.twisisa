@@ -31,7 +31,7 @@ export default function CartPage() {
     setSubmitting(true);
     setError(null);
     try {
-      const order = await api.orders.create(items.map((i) => ({ productId: i.productId, quantity: i.quantity })), token);
+      const order = await api.orders.create(items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? undefined, quantity: i.quantity })), token);
       clear();
       navigate(`/encomenda/${order.id}`, { state: { justCreated: true } });
     } catch {
@@ -40,11 +40,11 @@ export default function CartPage() {
     }
   }
 
-  function onRemove(productId: string) {
-    const index = items.findIndex((i) => i.productId === productId);
+  function onRemove(productId: string, variantId: string | null) {
+    const index = items.findIndex((i) => i.productId === productId && i.variantId === variantId);
     const item = items[index];
     if (!item) return;
-    removeItem(productId);
+    removeItem(productId, variantId);
     const batch = removedBatch.current;
     if (Date.now() - batch.at > 6000) batch.list = [];
     batch.at = Date.now();
@@ -83,7 +83,7 @@ export default function CartPage() {
           <div className="grid gap-6 md:grid-cols-[1fr_20rem] md:items-start">
             <ul className="space-y-3">
               {items.map((item) => (
-                <li key={item.productId} className="flex gap-3 rounded-2xl border border-border bg-surface p-3">
+                <li key={`${item.productId}:${item.variantId ?? "base"}`} className="flex gap-3 rounded-2xl border border-border bg-surface p-3">
                   <Link to={`/produto/${item.productId}`} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-elevated">
                     {item.imageUrl ? <img src={item.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" /> : (
                       <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={22} height={22} /></div>
@@ -92,15 +92,16 @@ export default function CartPage() {
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <Link to={`/produto/${item.productId}`} className="line-clamp-2 text-sm font-medium leading-snug">{item.name}</Link>
-                      <button onClick={() => onRemove(item.productId)} aria-label={`${t("cart.remove")}: ${item.name}`} className="press -mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint hover:bg-danger/10 hover:text-danger">
+                      {(item.colorHex || item.size) && <div className="mt-1 flex items-center gap-2 text-xs text-ink-muted">{item.colorHex && <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: item.colorHex }} aria-label="Cor selecionada" />}{item.size && <span>Tamanho {item.size}</span>}</div>}
+                      <button onClick={() => onRemove(item.productId, item.variantId)} aria-label={`${t("cart.remove")}: ${item.name}`} className="press -mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint hover:bg-danger/10 hover:text-danger">
                         <TrashIcon width={17} height={17} />
                       </button>
                     </div>
                     <div className="mt-auto flex items-center justify-between gap-2 pt-2">
                       <div className="flex items-center rounded-xl border border-border">
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} disabled={item.quantity <= 1} aria-label="-" className="press flex h-10 w-10 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><MinusIcon width={14} height={14} /></button>
+                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId)} disabled={item.quantity <= 1} aria-label="-" className="press flex h-10 w-10 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><MinusIcon width={14} height={14} /></button>
                         <span className="w-7 text-center text-sm font-bold tabular-nums">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} disabled={item.stock > 0 && item.quantity >= item.stock} aria-label={item.quantity >= item.stock ? t("cart.maxStock") : "+"} className="press flex h-10 w-10 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><PlusIcon width={14} height={14} /></button>
+                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId)} disabled={item.stock > 0 && item.quantity >= item.stock} aria-label={item.quantity >= item.stock ? t("cart.maxStock") : "+"} className="press flex h-10 w-10 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><PlusIcon width={14} height={14} /></button>
                       </div>
                       <p className="font-display text-base font-bold tabular-nums">{formatMzn(Number(item.priceMzn) * item.quantity)}</p>
                     </div>

@@ -97,7 +97,7 @@ export default function ChatWidget() {
         <button
           onClick={() => setOpen(true)}
           aria-label={t("chat.title")}
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--toast-offset, 16px))" }}
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + var(--nav-h, 0px) + var(--toast-offset, 16px))" }}
           className="press fixed right-4 z-50 flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-primary bg-primary-active shadow-lg shadow-black/40"
         >
           <img src={img.mascotSupportAvatar} alt="" width={256} height={256} className="h-full w-full object-cover" />

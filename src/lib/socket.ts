@@ -9,7 +9,9 @@ const SOCKET_URL = API_URL.replace(/\/api\/v1\/?$/, "");
 let socket: Socket | null = null;
 
 export function getSocket(token: string): Socket {
-  if (socket && socket.connected) return socket;
+  // Reutiliza a ligação enquanto estiver activa (a ligar OU ligada): recriá-la a meio de uma ligação em curso
+  // deitaria fora os listeners que outros ecrãs já tinham registado.
+  if (socket && socket.active) return socket;
   if (socket) socket.disconnect();
   socket = io(SOCKET_URL, { auth: { token }, transports: ["websocket", "polling"] });
   return socket;

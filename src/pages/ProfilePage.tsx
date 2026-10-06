@@ -23,7 +23,7 @@ const LOCATION_STORAGE_KEY = "twisisa.deliveryLocation";
 export default function ProfilePage() {
   const { t, locale } = useLocale();
   useDocumentMeta({ title: `${t("profile.title")} · Twisisa Market`, noindex: true });
-  const { token, logout } = useAuth();
+  const { token, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const [me, setMe] = useState<Me | null>(null);
@@ -125,6 +125,11 @@ export default function ProfilePage() {
         </section>
 
         {referral && <div className="mt-4"><ReferralCard referral={referral} /></div>}
+
+        <section className="mt-4 grid gap-2 sm:grid-cols-2">
+          <Button variant="secondary" className="w-full" onClick={() => navigate("/definicoes")}>Definições</Button>
+          {isAdmin && <Button className="w-full" onClick={() => navigate("/admin")}>Área de administração</Button>}
+        </section>
 
         <Button variant="ghost" size="lg" className="mt-4 w-full text-ink-muted" onClick={onLogout}><LogOutIcon width={18} height={18} />{t("profile.logout")}</Button>
       </div>

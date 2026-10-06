@@ -45,14 +45,17 @@ export default function AdminLoginPage() {
       <aside className="relative hidden overflow-hidden bg-primary-active lg:flex lg:flex-col lg:justify-between">
         <SpeedLines className="pointer-events-none absolute -left-10 top-16 h-56 w-80 text-white/15" />
         <p className="relative max-w-sm px-12 pt-14 font-display text-4xl font-extrabold leading-[1.1] text-white">{t("admin.login.side")}</p>
-        <img src={img.mascotDelivery} alt="" width={900} height={1106} className="relative ml-auto h-[28rem] object-contain object-bottom" />
+        <img src={img.shield} alt="" width={700} height={847} className="relative mx-auto mb-16 h-56 object-contain drop-shadow-2xl" />
       </aside>
 
       <div className="flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-3">
             <img src="/logo.png" alt="Twisisa Market" width={44} height={44} />
-            <h1 className="text-2xl font-bold">{t("admin.login.title")}</h1>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary-text">{t("admin.area")}</p>
+              <h1 className="text-2xl font-bold">{t("admin.login.title")}</h1>
+            </div>
           </div>
           <form onSubmit={onSubmit} className="space-y-4">
             <label className="block">

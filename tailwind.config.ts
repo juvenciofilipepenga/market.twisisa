@@ -12,7 +12,7 @@ const config: Config = {
         surface: "#1D1716",
         elevated: "#271F1D",
         border: "#3A2E2B",
-        primary: { DEFAULT: "#EE0006", hover: "#FF2A2F", active: "#C40005", soft: "rgba(238,0,6,0.14)", text: "#FF6259" },
+        primary: { DEFAULT: "rgb(var(--c-primary) / <alpha-value>)", hover: "rgb(var(--c-primary-hover) / <alpha-value>)", active: "rgb(var(--c-primary-active) / <alpha-value>)", soft: "rgb(var(--c-primary) / 0.14)", text: "rgb(var(--c-primary-text) / <alpha-value>)" },
         ink: { DEFAULT: "#F8F2ED", muted: "#B9ADA6", faint: "#948782" },
         sun: "#FFC145",
         success: "#3DDC84",

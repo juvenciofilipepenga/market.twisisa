@@ -36,6 +36,19 @@ export interface ProductImage {
   isPrimary: boolean;
 }
 
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  colorHex: string | null;
+  size: string | null;
+  stock: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Review { id:string; rating:number; comment:string|null; createdAt:string; userName:string; }
+
 export interface Product {
   id: string;
   name: string;
@@ -48,6 +61,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   images: ProductImage[];
+  variants: ProductVariant[];
 }
 
 export interface PaginatedResponse<T> {
@@ -103,7 +117,11 @@ export interface AdminUser {
 export interface OrderItem {
   id: string;
   orderId: string;
-  productId: string;
+  /** null quando o produto foi apagado depois da encomenda (o nome e o preço ficam guardados na linha). */
+  productId: string | null;
+  variantId?: string | null;
+  variantColorHex?: string | null;
+  variantSize?: string | null;
   productName: string;
   unitPriceMzn: string;
   quantity: number;
@@ -236,4 +254,24 @@ export interface ChatMenuOption {
 
 export interface ApiErrorBody {
   error: string;
+}
+
+/** Resposta de GET /admin/stats (ver backend/src/routes/admin-stats.ts). */
+export interface AdminStats {
+  generatedAt: string;
+  days: 7 | 14 | 30 | 90;
+  kpis: {
+    revenueMzn: number; revenueDeltaPct: number | null;
+    paidOrders: number; paidOrdersDeltaPct: number | null;
+    averageTicketMzn: number;
+    newCustomers: number; newCustomersDeltaPct: number | null;
+    ordersCreated: number;
+    paymentConversionPct: number | null;
+  };
+  revenueByDay: Array<{ date: string; revenueMzn: number; orders: number }>;
+  ordersByStatus: Array<{ status: OrderStatus; count: number }>;
+  topProducts: Array<{ name: string; units: number; revenueMzn: number }>;
+  attention: { awaitingReview: number; pendingPayment: number; cancelRequests: number; refundPending: number; openChats: number; lowStock: number };
+  catalog: { activeProducts: number; lowStockThreshold: number };
+  recentOrders: Array<{ id: string; orderNumber: string; status: OrderStatus; totalMzn: number; createdAt: string; customer: string }>;
 }

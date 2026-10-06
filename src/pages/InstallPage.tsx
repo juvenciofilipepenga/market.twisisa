@@ -16,7 +16,7 @@ const chipOff = "border-border bg-surface text-ink-muted hover:border-ink-faint 
 const chipOn = "border-ink bg-ink text-bg";
 
 export default function InstallPage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   useDocumentMeta({ title: `${t("install.title")} · Twisisa Market` });
   const { canPrompt, installed, install } = useInstall();
   const [platform, setPlatform] = useState<InstallPlatform>(detectPlatform);
@@ -46,24 +46,10 @@ export default function InstallPage() {
           </div>
         </div>
 
-        {!installed && (
-          <section className="mt-6">
-            <h2 className="mb-3 text-lg font-extrabold">{t("install.stepsTitle")}</h2>
-            <div className="no-scrollbar mb-4 flex gap-2 overflow-x-auto">
-              {PLATFORMS.map((p) => (
-                <button key={p} onClick={() => setPlatform(p)} aria-pressed={platform === p} className={`${chip} ${platform === p ? chipOn : chipOff}`}>
-                  {t(`install.platform.${p}`)}
-                </button>
-              ))}
-            </div>
-            <ol className="space-y-2">
-              {Array.from({ length: STEPS[platform] }, (_, i) => i + 1).map((n) => (
-                <li key={`${platform}-${n}`} className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-bold text-primary-text">{n}</span>
-                  <p className="pt-0.5 text-sm text-ink">{t(`install.steps.${platform}.${n}`)}</p>
-                </li>
-              ))}
-            </ol>
+        {!installed && !canPrompt && (
+          <section className="mt-6 rounded-2xl border border-border bg-surface p-5">
+            <h2 className="text-lg font-extrabold">{locale === "pt" ? "A aplicação está pronta no seu dispositivo." : "The app is ready on your device."}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">{locale === "pt" ? "Quando o sistema disponibilizar a instalação nativa, este botão aparecerá aqui. Não é necessário seguir instruções manuais de navegador." : "When the system makes native installation available, the button will appear here. No manual browser instructions are needed."}</p>
           </section>
         )}
       </div>

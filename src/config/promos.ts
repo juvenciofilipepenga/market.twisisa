@@ -34,7 +34,7 @@ export const PROMOS: Promo[] = [
     delayMs: 9000,
     scrollPct: 45,
     cooldownHours: 72,
-    art: img.mascotDelivery,
+    art: img.mascotPeek,
     title: { pt: "Bem-vindo ao Twisisa Market", en: "Welcome to Twisisa Market" },
     body: {
       pt: "Crie a sua conta para acompanhar as suas encomendas e receber notificações a cada passo.",

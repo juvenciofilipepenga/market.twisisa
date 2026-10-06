@@ -23,7 +23,7 @@ export function CookieNotice() {
 
   if (!visible) return null;
   return (
-    <div role="region" aria-label="Cookies" className="safe-bottom toast-in fixed inset-x-3 bottom-3 z-50 flex items-start gap-3 rounded-2xl border border-border bg-elevated p-4 shadow-2xl shadow-black/60 sm:right-auto sm:max-w-sm">
+    <div role="region" aria-label="Cookies" style={{ bottom: "calc(var(--nav-h, 0px) + 0.75rem)" }} className="safe-bottom toast-in fixed inset-x-3 z-50 flex items-start gap-3 rounded-2xl border border-border bg-elevated p-4 shadow-2xl shadow-black/60 sm:right-auto sm:max-w-sm">
       <img src={img.shield} alt="" width={40} height={48} className="h-10 w-auto shrink-0" />
       <div>
         <p className="text-sm leading-relaxed text-ink-muted">{t("cookie.text")}</p>

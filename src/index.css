@@ -2,7 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; --toast-offset: 16px; }
+:root {
+  color-scheme: dark;
+  --toast-offset: 16px;
+  /* Cor de acção (RGB). A loja usa o vermelho da marca; o painel admin pode trocá-la (ver lib/adminTheme.ts). */
+  --c-primary: 238 0 6; --c-primary-hover: 255 42 47; --c-primary-active: 196 0 5; --c-primary-text: 255 98 89;
+  /* Altura da barra de navegação inferior (só em telemóvel e só nas páginas que a mostram). */
+  --nav-h: 0px;
+}
+@media (max-width: 767px) { :root[data-bottom-nav] { --nav-h: 3.75rem; } }
 
 html, body, #root { min-height: 100%; }
 html, body { background-color: #140F0E; color: #F8F2ED; }
@@ -10,13 +18,16 @@ html, body { background-color: #140F0E; color: #F8F2ED; }
 
 @layer base {
   h1, h2, h3 { font-family: "Bricolage Grotesque", "Figtree", -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.02em; }
-  :focus-visible { outline: 2px solid #FF6259; outline-offset: 2px; }
+  :focus-visible { outline: 2px solid rgb(var(--c-primary-text)); outline-offset: 2px; }
 }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .safe-top { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+/* Espaço reservado ao fim da página para a barra inferior não tapar o último conteúdo */
+.pb-nav-6 { padding-bottom: calc(var(--nav-h, 0px) + env(safe-area-inset-bottom, 0px) + 1.5rem); }
+.pb-nav { padding-bottom: calc(var(--nav-h, 0px) + env(safe-area-inset-bottom, 0px)); }
 
 /* =====================================================================
    MOVIMENTO. Regra da casa: cada animação tem uma função.

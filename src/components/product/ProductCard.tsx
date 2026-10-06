@@ -28,7 +28,8 @@ export function ProductCard({ product }: { product: Product }) {
   }, [added]);
 
   function onAdd() {
-    const inCart = Math.min(product.stock, (items.find((i) => i.productId === product.id)?.quantity ?? 0) + 1);
+    if (product.variants?.length) { navigate(`/produto/${product.id}`); return; }
+    const inCart = Math.min(product.stock, (items.find((i) => i.productId === product.id && !i.variantId)?.quantity ?? 0) + 1);
     addItem(product);
     setAdded(true);
     flyToCart(imageBox.current, image?.url ?? null);
@@ -57,7 +58,7 @@ export function ProductCard({ product }: { product: Product }) {
           <button
             onClick={onAdd}
             disabled={outOfStock}
-            aria-label={`${t("product.addToCart")}: ${product.name}`}
+            aria-label={product.variants?.length ? `${t("common.seeAll")}: ${product.name}` : `${t("product.addToCart")}: ${product.name}`}
             className={`press flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
           >
             {added ? <CheckIcon className="pop" width={18} height={18} /> : <CartIcon width={18} height={18} />}

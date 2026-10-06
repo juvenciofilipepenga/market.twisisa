@@ -11,7 +11,8 @@ export default function LegalPage({ doc }: { doc: LegalKey }) {
   const content = LEGAL[locale][doc];
   const [active, setActive] = useState(0);
   useDocumentMeta({ title: `${content.title} · Twisisa Market`, description: content.sections[0]?.body[0] });
-  const art = doc === "privacy" ? img.shield : doc === "terms" ? img.tag : null;
+  // Só privacidade e cookies têm a ver com segurança. Os termos ficam sem imagem (a etiqueta de preço dizia "promoção").
+  const art = doc === "privacy" || doc === "cookies" ? img.shield : null;
 
   // Índice lateral acompanha a secção visível
   useEffect(() => {

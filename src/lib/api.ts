@@ -1,7 +1,7 @@
 import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats
 } from "./types";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
@@ -46,10 +46,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-  if (res.status === 401 && options.token) {
+  const code = (data as { error?: string }).error;
+  // Token inválido, ou conta suspensa/bloqueada: a sessão guardada já não vale.
+  if (options.token && (res.status === 401 || (res.status === 403 && code === "ACCOUNT_RESTRICTED"))) {
     window.dispatchEvent(new Event("twisisa:unauthorized"));
   }
-  throw new ApiError(res.status, (data as { error?: string }).error ?? "UNKNOWN_ERROR");
+  throw new ApiError(res.status, code ?? "UNKNOWN_ERROR");
 }
   return data as T;
 }
@@ -101,7 +103,7 @@ export const api = {
       request<CloudinarySignature>("/uploads/sign", { method: "POST", body: { folder }, token })
   },
   orders: {
-    create: (items: Array<{ productId: string; quantity: number }>, token: string) =>
+    create: (items: Array<{ productId: string; variantId?: string; quantity: number }>, token: string) =>
       request<Order>("/orders", { method: "POST", body: { items }, token }),
     get: (id: string, token: string) => request<Order>(`/orders/${id}`, { token }),
     cancel: (id: string, reason: string, token: string) =>
@@ -125,11 +127,17 @@ export const api = {
     // Público: devolve só o primeiro nome de quem convidou (404 se o código não existir).
     lookup: (code: string) => request<{ valid: boolean; inviterFirstName: string }>(`/referrals/lookup/${encodeURIComponent(code)}`)
   },
+  reviews: {
+    list: (productId: string) => request<{ data: Array<{ id: string; rating: number; comment: string | null; createdAt: string; userName: string }>; summary: { average: number; count: number } }>(`/products/${productId}/reviews`),
+    create: (productId: string, token: string, payload: { rating: number; comment?: string }) => request(`/products/${productId}/reviews`, { method: "POST", body: payload, token })
+  },
   notifications: {
     list: (token: string, page = 1) =>
       request<PaginatedResponse<AppNotification>>(`/notifications${qs({ page })}`, { token }),
     markRead: (id: string, token: string) =>
-      request<AppNotification>(`/notifications/${id}/read`, { method: "POST", token })
+      request<AppNotification>(`/notifications/${id}/read`, { method: "POST", token }),
+    remove: (id: string, token: string) => request<void>(`/notifications/${id}`, { method: "DELETE", token }),
+    removeAll: (token: string) => request<void>("/notifications", { method: "DELETE", token })
   },
   chat: {
     open: (token: string) =>
@@ -157,23 +165,31 @@ export const api = {
     }
   },
   admin: {
+    stats: (token: string, days: 7 | 14 | 30 | 90) => request<AdminStats>(`/admin/stats?days=${days}`, { token }),
     products: {
-      list: (token: string, params: { page?: number; limit?: number; includeInactive?: boolean } = {}) =>
+      list: (token: string, params: { page?: number; limit?: number; includeInactive?: boolean; search?: string } = {}) =>
         request<PaginatedResponse<Product>>(`/admin/products${qs(params)}`, { token }),
-      create: (token: string, payload: { name: string; description?: string; priceMzn: number; stock: number; categoryId?: string; active: boolean }) =>
+      create: (token: string, payload: { name: string; description?: string; priceMzn: number; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }) =>
         request<Product>("/admin/products", { method: "POST", body: payload, token }),
-      update: (token: string, id: string, payload: Partial<{ name: string; description: string; priceMzn: number; stock: number; categoryId: string; active: boolean }>) =>
+      update: (token: string, id: string, payload: Partial<{ name: string; description: string | null; priceMzn: number; stock: number; categoryId: string | null; active: boolean; variants: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
         request<Product>(`/admin/products/${id}`, { method: "PATCH", body: payload, token }),
       adjustStock: (token: string, id: string, delta: number) =>
         request<Product>(`/admin/products/${id}/stock`, { method: "POST", body: { delta }, token }),
       addImage: (token: string, id: string, payload: { url: string; publicId?: string; altText?: string; isPrimary?: boolean }) =>
         request<Product["images"][number]>(`/admin/products/${id}/images`, { method: "POST", body: payload, token }),
       removeImage: (token: string, id: string, imageId: string) =>
-        request<void>(`/admin/products/${id}/images/${imageId}`, { method: "DELETE", token })
+        request<void>(`/admin/products/${id}/images/${imageId}`, { method: "DELETE", token }),
+      remove: (token: string, id: string) => request<void>(`/admin/products/${id}`, { method: "DELETE", token }),
+      bulkCreate: (token: string, products: Array<{ name: string; description?: string; priceMzn: number; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
+        request<{ created: number; failed: Array<{ row: number; error: string }> }>(`/admin/products/bulk`, { method: "POST", body: { products }, token })
     },
     categories: {
       create: (token: string, name: string) =>
-        request<Category>("/admin/categories", { method: "POST", body: { name }, token })
+        request<Category>("/admin/categories", { method: "POST", body: { name }, token }),
+      update: (token: string, id: string, name: string) =>
+        request<Category>(`/admin/categories/${id}`, { method: "PATCH", body: { name }, token }),
+      remove: (token: string, id: string) =>
+        request<void>(`/admin/categories/${id}`, { method: "DELETE", token })
     },
     orders: {
       list: (token: string, params: { status?: string; page?: number; limit?: number } = {}) =>
@@ -187,7 +203,9 @@ export const api = {
     },
     users: {
       list: (token: string, params: { search?: string; status?: string; page?: number; limit?: number } = {}) =>
-        request<PaginatedResponse<AdminUser>>(`/admin/users${qs(params)}`, { token })
+        request<PaginatedResponse<AdminUser>>(`/admin/users${qs(params)}`, { token }),
+      setStatus: (token: string, id: string, status: "ACTIVE" | "SUSPENDED" | "BLOCKED") =>
+        request<{ id: string; status: string }>(`/admin/users/${id}/status`, { method: "PATCH", body: { status }, token })
     },
     chat: {
       list: (token: string, params: { status?: string; page?: number; limit?: number } = {}) =>

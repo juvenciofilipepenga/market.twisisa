@@ -1,32 +1,22 @@
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
 import { useLocale } from "@/i18n/LocaleContext";
-import type { Product } from "@/lib/types";
+import { useFeaturedProducts } from "@/lib/useFeaturedProducts";
 import { ProductCard } from "../product/ProductCard";
 import { Skeleton } from "../ui/Skeleton";
 
-// NOTA: o backend ainda não tem um campo "destaque"/"featured" no Produto (ver README.md).
-// Enquanto essa opção não existir na base de dados, "Destaques" mostra os produtos mais
-// recentes com stock disponível — é um critério temporário, não uma curadoria editorial real.
+// Fila "Destaques": os produtos que o slider do topo não mostra (mesma fonte, ver lib/useFeaturedProducts.ts).
 export function FeaturedSection() {
   const { t } = useLocale();
-  const [products, setProducts] = useState<Product[] | null>(null);
+  const { ready, more } = useFeaturedProducts();
 
-  useEffect(() => {
-    api.products.list({ limit: 8 }).then((res) => {
-      setProducts(res.data.filter((p) => p.stock > 0).slice(0, 6));
-    }).catch(() => setProducts([]));
-  }, []);
-
-  if (products !== null && products.length === 0) return null;
+  if (ready && more.length === 0) return null;
 
   return (
     <section className="py-4">
       <h2 className="mb-3 px-4 text-xl font-bold">{t("home.featured")}</h2>
       <div className="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4">
-        {products === null
+        {!ready
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-40 shrink-0 rounded-2xl sm:w-48" />)
-          : products.map((p) => (
+          : more.map((p) => (
             <div key={p.id} className="w-40 shrink-0 snap-start sm:w-48"><ProductCard product={p} /></div>
           ))}
       </div>

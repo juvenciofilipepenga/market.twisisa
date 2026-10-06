@@ -181,7 +181,7 @@ export default function OrderPage() {
               <div className="rounded-2xl border border-border bg-surface p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h2 className="text-base font-bold">{t("payment.chooseMethod")}</h2>
-                  <img src={img.phone} alt="" width={700} height={1050} loading="lazy" className="h-12 w-auto shrink-0" />
+                  <img src={img.mascotPayment} alt="" width={900} height={952} loading="lazy" className="h-14 w-auto shrink-0 object-contain" />
                 </div>
                 <div className="mb-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("payment.chooseMethod")}>
                   {(["MPESA", "EMOLA", "CARD", "GATEWAY"] as Method[]).map((m) => (

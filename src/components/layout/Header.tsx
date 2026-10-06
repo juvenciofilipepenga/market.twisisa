@@ -86,16 +86,24 @@ export function Header() {
           </span>
         </Link>
 
+        {/* Telemóvel: carrinho, notificações e conta estão na barra inferior; aqui ficam só idioma (e a mira do
+            "voar para o carrinho", que aponta para o primeiro elemento visível com data-cart-target). */}
         <div className="order-2 ml-auto flex shrink-0 items-center gap-0.5 md:order-3 md:ml-0">
-          <Link to="/notificacoes" className={iconButton} aria-label={t("nav.notifications")}>
-            <BellIcon /><CountBadge value={unread} />
-          </Link>
-          <Link to="/carrinho" data-cart-target className={iconButton} aria-label={t("nav.cart")}>
+          {token && (
+            <Link to="/notificacoes" className={`${iconButton} hidden md:flex`} aria-label={t("nav.notifications")}>
+              <BellIcon /><CountBadge value={unread} />
+            </Link>
+          )}
+          <Link to="/carrinho" data-cart-target className={`${iconButton} hidden md:flex`} aria-label={t("nav.cart")}>
             <CartIcon /><CountBadge value={count} bumpKey={bumpKey} />
           </Link>
-          <Link to={token ? "/perfil" : "/entrar"} className={iconButton} aria-label={token ? t("nav.profile") : t("auth.login")}>
-            <UserIcon />
-          </Link>
+          {token ? (
+            <Link to="/perfil" className={`${iconButton} hidden md:flex`} aria-label={t("nav.profile")}>
+              <UserIcon />
+            </Link>
+          ) : (
+            <Link to="/entrar" className="press ml-1 hidden h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover md:inline-flex">{t("auth.login")}</Link>
+          )}
           <LanguageToggle />
         </div>
 
