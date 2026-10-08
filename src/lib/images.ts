@@ -29,6 +29,11 @@ export const img = {
   phone: u("obj-telemovel"),    // ecrã da APP → só na página de instalar (nunca como símbolo de pagamento)
   tag: u("obj-etiqueta"),       // etiqueta de preço → preços, descontos, campanhas (não serve para documentos legais)
   shield: u("obj-escudo"),      // escudo com visto → segurança e privacidade (pagamento seguro, privacidade, cookies, área restrita)
+  // Logótipos dos métodos de pagamento (só no ecrã de pagamento) e do processador.
+  payMpesa: u("pay-mpesa"),
+  payEmola: u("pay-emola"),
+  payCard: u("pay-card"),
+  payZumbopay: u("pay-zumbopay"),
   // Fundos
   patternCapulana: u("fundo-capulana"),   // padrão tradicional: faixa decorativa do rodapé (imagem única, tem costura)
   heroBackdrop: u("fundo-hero"),          // fitas vermelhas: painéis de marca (entrar/registar, admin)

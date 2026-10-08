@@ -26,7 +26,8 @@ export default function ChatWidget() {
   const fileInput = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  // O pagamento é um ecrã de foco: sem o botão do chat por cima do botão de pagar.
+  const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/pagamento");
 
   function addMessage(msg: ChatMessage) {
     setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));

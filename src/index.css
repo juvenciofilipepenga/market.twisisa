@@ -103,10 +103,18 @@ html, body { background-color: #140F0E; color: #F8F2ED; }
     radial-gradient(circle 10px at 100% 50%, #0000 96%, #000) right / 51% 100% no-repeat;
 }
 
+/* Pagamento: anéis a pulsar à volta do telemóvel (à espera do PIN) e visto que se desenha ao confirmar */
+@keyframes pay-ring { 0% { transform: scale(0.8); opacity: 0.55; } 100% { transform: scale(1.7); opacity: 0; } }
+.pay-ring { animation: pay-ring 2.2s ease-out infinite; }
+.pay-ring:nth-child(2) { animation-delay: 0.7s; }
+@keyframes pay-draw { to { stroke-dashoffset: 0; } }
+.pay-check path { stroke-dasharray: 32; stroke-dashoffset: 32; animation: pay-draw 0.5s 0.2s ease-out forwards; }
+
 /* Quem pede menos movimento fica sem nenhuma destas animações (o spinner de carregamento mantém-se: é informação) */
 @media (prefers-reduced-motion: reduce) {
   .page-in, .rise, .speed-line, .bump, .pop, .toast-in, .menu-in,
-  .modal-backdrop[data-state], .modal-panel[data-state] { animation: none !important; }
+  .modal-backdrop[data-state], .modal-panel[data-state], .pay-ring { animation: none !important; }
+  .pay-check path { animation: none !important; stroke-dashoffset: 0; }
   .press { transition: none; }
   .px { transform: rotate(var(--rot, 0deg)); }
   .px-x { transform: none; }

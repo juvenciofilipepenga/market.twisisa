@@ -7,7 +7,7 @@ import { ACCENTS, accentVars, useAdminAccent, type AdminAccent } from "@/lib/adm
 import { LanguageToggle } from "../layout/LanguageToggle";
 import { Modal } from "../ui/Modal";
 import { LayoutDashboardIcon, PackageNavIcon, TagsNavIcon, OrdersNavIcon, UsersNavIcon, ChatNavIcon, StoreNavIcon } from "./navIcons";
-import { LogOutIcon, GridIcon } from "../icons";
+import { LogOutIcon, GridIcon, DocumentIcon } from "../icons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type NavItem = { href: string; key: string; Icon: Icon; exact?: boolean };
@@ -17,16 +17,17 @@ const ORDERS: NavItem = { href: "/admin/pedidos", key: "admin.nav.orders", Icon:
 const CHAT: NavItem = { href: "/admin/chat", key: "admin.nav.chat", Icon: ChatNavIcon };
 const PRODUCTS: NavItem = { href: "/admin/produtos", key: "admin.nav.products", Icon: PackageNavIcon };
 const CATEGORIES: NavItem = { href: "/admin/categorias", key: "admin.nav.categories", Icon: TagsNavIcon };
+const INVOICE: NavItem = { href: "/admin/fatura", key: "admin.nav.invoice", Icon: DocumentIcon };
 const USERS: NavItem = { href: "/admin/utilizadores", key: "admin.nav.users", Icon: UsersNavIcon };
 
 const GROUPS: Array<{ title: string; items: NavItem[] }> = [
-  { title: "admin.group.operation", items: [DASH, ORDERS, CHAT] },
+  { title: "admin.group.operation", items: [DASH, ORDERS, CHAT, INVOICE] },
   { title: "admin.group.catalog", items: [PRODUCTS, CATEGORIES] },
   { title: "admin.group.people", items: [USERS] }
 ];
 // Telemóvel: 4 destinos de uso diário na barra + "Mais" (o resto, a cor do painel, a loja e sair).
 const TABS: NavItem[] = [DASH, ORDERS, PRODUCTS, CHAT];
-const MORE: NavItem[] = [CATEGORIES, USERS];
+const MORE: NavItem[] = [CATEGORIES, USERS, INVOICE];
 
 function AccentPicker({ accent, onChange, label }: { accent: AdminAccent; onChange: (id: string) => void; label: string }) {
   return (

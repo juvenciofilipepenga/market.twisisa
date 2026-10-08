@@ -1,26 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { saveBlob } from "@/lib/download";
 import { useAuth } from "@/auth/AuthContext";
-import { api, ApiError, type InitiatePaymentPayload } from "@/lib/api";
+import { api } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
 import { img } from "@/lib/images";
 import type { Order } from "@/lib/types";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Field } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
-import { Confetti } from "@/components/fx/Confetti";
 import { OrderTimeline } from "@/components/order/OrderTimeline";
 import { OrderBanner } from "@/components/order/OrderBanner";
 import { ChevronLeftIcon, ClipboardIcon } from "@/components/icons";
-
-type Method = "MPESA" | "EMOLA" | "CARD" | "GATEWAY";
 
 // Mesma lista de estados canceláveis que o backend usa em src/routes/orders.ts (const
 // cancellable) — mantido em sincronia à mão; o servidor volta a validar sempre.
@@ -32,17 +29,9 @@ export default function OrderPage() {
   const { t } = useLocale();
   useDocumentMeta({ title: `${t("order.title")} · Twisisa Market`, noindex: true });
   const { token } = useAuth();
-  const location = useLocation();
   const toast = useToast();
-  // Vem do checkout: celebra uma vez e limpa o estado do histórico (um refresh não repete o confetti).
-  const [celebrate] = useState(() => Boolean((location.state as { justCreated?: boolean } | null)?.justCreated));
-  useEffect(() => { if (celebrate) navigate(location.pathname, { replace: true, state: null }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [order, setOrder] = useState<Order | null | "not-found">(null);
-  const [method, setMethod] = useState<Method>("MPESA");
-  const [phone, setPhone] = useState("");
-  const [initiating, setInitiating] = useState(false);
   const [initiateError, setInitiateError] = useState<string | null>(null);
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submittingProof, setSubmittingProof] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -54,30 +43,11 @@ export default function OrderPage() {
 
   function load() {
     if (!token) return;
-    api.orders.get(id, token).then(setOrder).catch((err) => {
-      setOrder(err instanceof ApiError && err.status === 404 ? "not-found" : "not-found");
+    api.orders.get(id, token).then(setOrder).catch(() => {
+      setOrder("not-found");
     });
   }
   useEffect(load, [id, token]);
-
-  async function initiatePayment() {
-    if (!token || !order || order === "not-found") return;
-    setInitiating(true);
-    setInitiateError(null);
-    try {
-      let payload: InitiatePaymentPayload;
-      if (method === "GATEWAY") payload = { provider: "ZUMBOPAY", method: "CARD" };
-      else if (method === "CARD") payload = { provider: "MANUAL", method: "CARD" };
-      else payload = { provider: "MANUAL", method, paymentNumber: phone.trim() };
-      const result = await api.payments.initiate(order.id, payload, token);
-      if (result.checkoutUrl) setCheckoutUrl(result.checkoutUrl);
-      load();
-    } catch (err) {
-      setInitiateError(err instanceof ApiError ? err.code : t("common.error"));
-    } finally {
-      setInitiating(false);
-    }
-  }
 
   async function submitProof(paymentId: string) {
     if (!token || !proofFile) return;
@@ -119,16 +89,14 @@ export default function OrderPage() {
   }
 
   const activePayment = order && order !== "not-found"
-    ? order.payments?.find((p) => !["FAILED", "CANCELLED", "REFUNDED", "PAYMENT_REJECTED", "REFUNDED_LEGACY"].includes(p.status))
+    ? order.payments?.find((p) => !["FAILED", "TIMEOUT", "CANCELLED", "REFUNDED", "PAYMENT_REJECTED", "REFUNDED_LEGACY"].includes(p.status))
     : undefined;
 
   const ready = order && order !== "not-found" ? order : null;
-  const needsPhone = method === "MPESA" || method === "EMOLA";
 
   return (
     <main className="pb-10">
       <Header />
-      {celebrate && <Confetti />}
       <div className="mx-auto max-w-2xl px-4 py-4">
         <button onClick={() => navigate("/")} className="press mb-3 -ml-2 flex h-10 items-center gap-1 rounded-lg px-2 text-sm text-ink-muted hover:text-ink">
           <ChevronLeftIcon width={16} height={16} />{t("common.backHome")}
@@ -139,9 +107,7 @@ export default function OrderPage() {
 
         {ready && (
           <div className="space-y-4">
-            {celebrate ? (
-              <OrderBanner image={img.mascotCelebrate} title={t("order.created")} body={t("order.createdBody")} />
-            ) : ready.status === "DELIVERED" ? (
+            {ready.status === "DELIVERED" ? (
               <OrderBanner image={img.mascotCelebrate} title={t("order.delivered")} body={t("order.deliveredBody")} />
             ) : ready.status === "SHIPPED" || ready.status === "OUT_FOR_DELIVERY" ? (
               <OrderBanner image={img.mascotDelivery} title={t("order.onTheWay")} body={t("order.onTheWayBody")} />
@@ -177,36 +143,22 @@ export default function OrderPage() {
               </div>
             </div>
 
-            {ready.status === "PENDING_PAYMENT" && !activePayment && (
-              <div className="rounded-2xl border border-border bg-surface p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 className="text-base font-bold">{t("payment.chooseMethod")}</h2>
+            {ready.status === "PENDING_PAYMENT" && (!activePayment || activePayment.provider === "ZUMBOPAY") && (
+              <div className="rounded-2xl border border-primary/40 bg-primary-soft p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-bold">{t("pay.pending.title")}</h2>
+                    <p className="mt-1 text-sm text-ink-muted">{t(activePayment ? "pay.pending.inProgress" : "pay.pending.body")}</p>
+                  </div>
                   <img src={img.mascotPayment} alt="" width={900} height={952} loading="lazy" className="h-14 w-auto shrink-0 object-contain" />
                 </div>
-                <div className="mb-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("payment.chooseMethod")}>
-                  {(["MPESA", "EMOLA", "CARD", "GATEWAY"] as Method[]).map((m) => (
-                    <button key={m} role="radio" aria-checked={method === m} onClick={() => setMethod(m)}
-                      className={`press flex min-h-[48px] items-center justify-center rounded-xl border px-3 text-sm font-semibold ${method === m ? "border-primary bg-primary-soft text-ink" : "border-border text-ink-muted hover:border-ink-faint"}`}>
-                      {t(`payment.${m === "GATEWAY" ? "gateway" : m.toLowerCase()}`)}
-                    </button>
-                  ))}
-                </div>
-                {needsPhone && (
-                  <Field label={t("payment.phoneNumber")} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="mb-3" />
-                )}
-                {initiateError && <p role="alert" className="mb-3 text-sm text-danger">{initiateError}</p>}
-                <Button size="lg" className="w-full" loading={initiating} disabled={needsPhone && phone.trim().length < 9} onClick={initiatePayment}>
-                  {t("payment.initiate")}
-                </Button>
-                {checkoutUrl && (
-                  <a href={checkoutUrl} target="_blank" rel="noreferrer" className="mt-3 block text-center text-sm font-semibold text-primary-text underline underline-offset-4">
-                    {t("payment.gateway")} →
-                  </a>
-                )}
+                <Link to={`/pagamento/${ready.id}`} className={buttonClass("primary", "lg", "mt-3 w-full")}>{t(activePayment ? "pay.pending.resume" : "pay.pending.cta")}</Link>
               </div>
             )}
 
-            {activePayment && (
+            {initiateError && <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{initiateError}</p>}
+
+            {activePayment && activePayment.provider === "MANUAL" && (
               <div className="rounded-2xl border border-border bg-surface p-4">
                 <h2 className="mb-2 text-base font-bold">{t("payment.title")}</h2>
                 <p className="text-xs text-ink-faint">{t("payment.reference")}: <span className="font-mono text-ink-muted">{activePayment.reference}</span></p>

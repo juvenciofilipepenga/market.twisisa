@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -108,6 +108,9 @@ export default function OrdersPage() {
                     </p>
                     <p className="mt-1 font-display text-lg font-extrabold tabular-nums">{formatMzn(order.totalMzn)}</p>
                   </Link>
+                  {order.status === "PENDING_PAYMENT" && (
+                    <Link to={`/pagamento/${order.id}`} className={buttonClass("primary", "md", "mt-3 w-full")}>{t("pay.pending.cta")}</Link>
+                  )}
                   {order.invoice && (
                     <Button variant="secondary" size="sm" className="mt-3" onClick={() => download(order)}>
                       <DocumentIcon width={16} height={16} />{t("orders.invoice")} · {order.invoice.invoiceNumber}

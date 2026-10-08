@@ -33,7 +33,7 @@ export default function CartPage() {
     try {
       const order = await api.orders.create(items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? undefined, quantity: i.quantity })), token);
       clear();
-      navigate(`/encomenda/${order.id}`, { state: { justCreated: true } });
+      navigate(`/pagamento/${order.id}`);
     } catch {
       setError(t("common.error"));
       setSubmitting(false);

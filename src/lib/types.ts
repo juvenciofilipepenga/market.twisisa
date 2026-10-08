@@ -288,3 +288,45 @@ export interface OrderSummary {
   items: Array<{ productName: string; quantity: number }>;
   _count: { items: number };
 }
+
+export type PaymentFailureKind = "WRONG_PIN" | "INSUFFICIENT_FUNDS" | "CANCELLED" | "TIMEOUT" | "AMOUNT_MISMATCH" | "UNAVAILABLE" | "UNKNOWN";
+export type PaymentMethodId = "MPESA" | "EMOLA" | "CARD";
+
+/** Estado do pagamento visto pelo ecrã de pagamento (GET /payments/:id/status). `success` só existe depois de o ZumboPay confirmar. */
+export interface PaymentView {
+  id: string;
+  orderId: string;
+  method: string | null;
+  amountMzn: string;
+  paymentNumber: string | null;
+  state: "pending" | "success" | "failed";
+  status: PaymentStatus;
+  failureKind: PaymentFailureKind | null;
+  expiresAt: string | null;
+  confirmedAt: string | null;
+  invoiceId: string | null;
+  checkoutUrl?: string;
+}
+
+export interface InvoiceSettings {
+  companyName: string;
+  legalName: string | null;
+  nuit: string | null;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  signatureUrl: string | null;
+  signerName: string | null;
+  signerRole: string | null;
+  accentColor: string;
+  numberPrefix: string;
+  nextNumber: number;
+  footerNote: string | null;
+  terms: string | null;
+  bankDetails: string | null;
+  vatRatePercent: number | string;
+  showSignature: boolean;
+}

@@ -9,6 +9,7 @@ import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 import CartPage from "./pages/CartPage";
 import OrderPage from "./pages/OrderPage";
+import PaymentPage from "./pages/PaymentPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -33,6 +34,7 @@ import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
+import AdminInvoicePage from "./pages/admin/AdminInvoicePage";
 
 const ChatWidget = lazy(() => import("./components/chat/ChatWidget"));
 const AdminChatPage = lazy(() => import("./pages/admin/AdminChatPage"));
@@ -67,6 +69,7 @@ export default function App() {
 
               <Route element={<FocusLayout />}>
                 <Route path="/entrar" element={<LoginPage />} />
+                <Route path="/pagamento/:orderId" element={<RequireAuth><PaymentPage /></RequireAuth>} />
                 <Route path="/registar" element={<RegisterPage />} />
               </Route>
 
@@ -77,6 +80,7 @@ export default function App() {
                 <Route path="categorias" element={<AdminCategoriesPage />} />
                 <Route path="pedidos" element={<AdminOrdersPage />} />
                 <Route path="utilizadores" element={<AdminUsersPage />} />
+                <Route path="fatura" element={<AdminInvoicePage />} />
                 <Route
                   path="chat"
                   element={

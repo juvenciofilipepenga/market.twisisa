@@ -1,7 +1,8 @@
 import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary,
+  PaymentView, PaymentMethodId, InvoiceSettings
 } from "./types";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
@@ -11,15 +12,18 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1";
 export class ApiError extends Error {
   status: number;
   code: string;
-  constructor(status: number, code: string) {
+  /** Corpo completo do erro (ex.: { error: "PAYMENT_ALREADY_ACTIVE", paymentId }). */
+  data: Record<string, unknown>;
+  constructor(status: number, code: string, data: Record<string, unknown> = {}) {
     super(code);
     this.status = status;
     this.code = code;
+    this.data = data;
   }
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string | null;
   isForm?: boolean;
@@ -37,27 +41,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       body = JSON.stringify(options.body);
     }
   }
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}${path}`, {
-      method: options.method ?? "GET",
-      headers,
-      body,
-      cache: "no-store"
-    });
-  } catch {
-    // Sem rede, CORS, ou a plataforma recusou o pedido (ex.: corpo acima do limite da Vercel) antes de chegar à API.
-    throw new ApiError(0, "NETWORK_ERROR");
-  }
+  const res = await fetch(`${API_URL}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    body,
+    cache: "no-store"
+  });
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-  const code = (data as { error?: string }).error ?? (res.status === 413 ? "FILE_TOO_LARGE" : undefined);
+  const code = (data as { error?: string }).error;
   // Token inválido, ou conta suspensa/bloqueada: a sessão guardada já não vale.
   if (options.token && (res.status === 401 || (res.status === 403 && code === "ACCOUNT_RESTRICTED"))) {
     window.dispatchEvent(new Event("twisisa:unauthorized"));
   }
-  throw new ApiError(res.status, code ?? "UNKNOWN_ERROR");
+  throw new ApiError(res.status, code ?? "UNKNOWN_ERROR", data as Record<string, unknown>);
 }
   return data as T;
 }
@@ -80,7 +78,8 @@ export type InitiatePaymentPayload =
   | { provider: "MANUAL"; method: "MPESA"; paymentNumber: string }
   | { provider: "MANUAL"; method: "EMOLA"; paymentNumber: string }
   | { provider: "MANUAL"; method: "CARD" }
-  | { provider: "ZUMBOPAY"; method: string };
+  | { provider: "ZUMBOPAY"; method: "MPESA" | "EMOLA"; paymentNumber: string }
+  | { provider: "ZUMBOPAY"; method: "CARD" };
 
 export const api = {
   products: {
@@ -118,10 +117,13 @@ export const api = {
       request<Order>(`/orders/${id}/cancel`, { method: "POST", body: { reason }, token })
   },
   payments: {
+    // Métodos online realmente disponíveis (carteira configurada) + se o servidor está em modo de teste.
+    methods: () => request<{ methods: PaymentMethodId[]; sandbox: boolean; confirmWindowSeconds: number }>("/payments/methods"),
     initiate: (orderId: string, payload: InitiatePaymentPayload, token: string) =>
-      request<{ paymentId: string; reference: string; status: string; amountMzn: string; paymentNumber: string | null; checkoutUrl?: string }>(
-        `/orders/${orderId}/payments/initiate`, { method: "POST", body: payload, token }
-      ),
+      request<PaymentView>(`/orders/${orderId}/payments/initiate`, { method: "POST", body: payload, token }),
+    // Pergunta o estado real (o servidor confirma com o ZumboPay). É o que o ecrã de espera consulta de 3 em 3 segundos.
+    status: (id: string, token: string) => request<PaymentView>(`/payments/${id}/status`, { token }),
+    cancel: (id: string, token: string) => request<PaymentView>(`/payments/${id}/cancel`, { method: "POST", token }),
     get: (id: string, token: string) => request<Payment>(`/payments/${id}`, { token }),
     submitProof: (id: string, proofUrl: string, token: string) =>
       request<Payment>(`/payments/${id}/proof`, { method: "POST", body: { proofUrl }, token })
@@ -204,6 +206,12 @@ export const api = {
         request<PaginatedResponse<Order>>(`/admin/orders${qs(params)}`, { token }),
       updateStatus: (token: string, id: string, status: string, reason?: string) =>
         request<Order>(`/admin/orders/${id}/status`, { method: "POST", body: { status, reason }, token })
+    },
+    invoiceSettings: {
+      get: (token: string) => request<InvoiceSettings>("/admin/invoice-settings", { token }),
+      update: (token: string, payload: Omit<InvoiceSettings, "nextNumber" | "vatRatePercent"> & { vatRatePercent: number }) =>
+        request<InvoiceSettings>("/admin/invoice-settings", { method: "PUT", body: payload, token }),
+      previewPdf: (token: string) => downloadFile("/admin/invoice-settings/preview", token)
     },
     payments: {
       review: (token: string, id: string, approved: boolean, note?: string) =>
