@@ -205,7 +205,9 @@ export const api = {
       list: (token: string, params: { status?: string; page?: number; limit?: number } = {}) =>
         request<PaginatedResponse<Order>>(`/admin/orders${qs(params)}`, { token }),
       updateStatus: (token: string, id: string, status: string, reason?: string) =>
-        request<Order>(`/admin/orders/${id}/status`, { method: "POST", body: { status, reason }, token })
+        request<Order>(`/admin/orders/${id}/status`, { method: "POST", body: { status, reason }, token }),
+      addTracking: (token: string, id: string, payload: { note?: string; location?: string; estimatedDeliveryAt?: string; trackingCode?: string; carrier?: string }) =>
+        request<Order>(`/admin/orders/${id}/tracking`, { method: "POST", body: payload, token })
     },
     invoiceSettings: {
       get: (token: string) => request<InvoiceSettings>("/admin/invoice-settings", { token }),

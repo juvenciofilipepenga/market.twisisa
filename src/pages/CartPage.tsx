@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useCart } from "@/cart/CartContext";
+import { findReusable, registerPending, dropPending, type CartLine } from "@/lib/cartPending";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
 import { img } from "@/lib/images";
@@ -11,12 +12,12 @@ import { formatMzn } from "@/lib/format";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast, useBottomBarOffset } from "@/components/ui/Toast";
-import { BoxIcon, MinusIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { BoxIcon, CheckIcon, MinusIcon, PlusIcon, TrashIcon } from "@/components/icons";
 
 export default function CartPage() {
   const { t } = useLocale();
   useDocumentMeta({ title: `${t("cart.title")} · Twisisa Market`, noindex: true });
-  const { items, count, subtotal, updateQuantity, removeItem, restoreItem, clear } = useCart();
+  const { items, count, updateQuantity, removeItem, restoreItem, selectedItems, selectedSubtotal, toggleSelected, setAllSelected } = useCart();
   const { token } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -26,13 +27,27 @@ export default function CartPage() {
   const removedBatch = useRef<{ at: number; list: Array<{ item: (typeof items)[number]; index: number }> }>({ at: 0, list: [] });
   useBottomBarOffset(items.length > 0, 84);
 
+  const allSelected = items.length > 0 && selectedItems.length === items.length;
+  const someLeftOut = selectedItems.length > 0 && !allSelected;
+
+  // Paga só o que está escolhido. O carrinho NÃO é esvaziado aqui: os itens só saem depois de o pagamento ser confirmado
+  // (ver PaymentPage / CartReconciler), e o que não foi escolhido nunca sai.
   async function checkout() {
     if (!token) { navigate("/entrar?next=/carrinho"); return; }
+    if (selectedItems.length === 0) return;
     setSubmitting(true);
     setError(null);
+    const lines: CartLine[] = selectedItems.map((i) => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }));
     try {
-      const order = await api.orders.create(items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? undefined, quantity: i.quantity })), token);
-      clear();
+      // Já há uma encomenda por pagar com exatamente estes itens? Retoma-a em vez de criar uma duplicada.
+      const reusable = findReusable(lines);
+      if (reusable) {
+        const existing = await api.orders.get(reusable.orderId, token).catch(() => null);
+        if (existing?.status === "PENDING_PAYMENT") { navigate(`/pagamento/${existing.id}`); return; }
+        dropPending(reusable.orderId);
+      }
+      const order = await api.orders.create(lines.map((l) => ({ productId: l.productId, variantId: l.variantId ?? undefined, quantity: l.quantity })), token);
+      registerPending(order.id, lines);
       navigate(`/pagamento/${order.id}`);
     } catch {
       setError(t("common.error"));
@@ -60,7 +75,9 @@ export default function CartPage() {
   }
 
   const checkoutButton = (className: string) => (
-    <Button size="lg" className={className} loading={submitting} onClick={checkout}>{t("cart.checkout")}</Button>
+    <Button size="lg" className={className} loading={submitting} disabled={selectedItems.length === 0} onClick={checkout}>
+      {allSelected ? t("cart.checkout") : selectedItems.length === 0 ? t("cart.noneSelected") : `${t("cart.payChosen")} (${selectedItems.length})`}
+    </Button>
   );
 
   return (
@@ -81,9 +98,24 @@ export default function CartPage() {
           />
         ) : (
           <div className="grid gap-6 md:grid-cols-[1fr_20rem] md:items-start">
+            <div>
+            <label className="mb-3 flex min-h-[44px] cursor-pointer items-center gap-3 rounded-2xl border border-border bg-surface px-3 text-sm font-medium">
+              <button type="button" role="checkbox" aria-checked={allSelected} aria-label={t("cart.selectAll")} onClick={() => setAllSelected(!allSelected)}
+                className={`press flex h-6 w-6 shrink-0 items-center justify-center rounded-md border ${allSelected ? "border-primary bg-primary text-white" : "border-border bg-elevated"}`}>
+                {allSelected && <CheckIcon width={14} height={14} />}
+              </button>
+              <span onClick={() => setAllSelected(!allSelected)} className="flex-1">{t("cart.selectAll")}</span>
+              <span className="text-xs text-ink-muted">{selectedItems.length} / {items.length}</span>
+            </label>
             <ul className="space-y-3">
-              {items.map((item) => (
-                <li key={`${item.productId}:${item.variantId ?? "base"}`} className="flex gap-3 rounded-2xl border border-border bg-surface p-3">
+              {items.map((item) => {
+                const checked = item.selected !== false;
+                return (
+                <li key={`${item.productId}:${item.variantId ?? "base"}`} className={`flex gap-3 rounded-2xl border bg-surface p-3 transition-opacity ${checked ? "border-primary/50" : "border-border opacity-70"}`}>
+                  <button type="button" role="checkbox" aria-checked={checked} aria-label={`${t("cart.select")}: ${item.name}`} onClick={() => toggleSelected(item.productId, item.variantId)}
+                    className="press -ml-1 flex w-9 shrink-0 items-center justify-center self-stretch">
+                    <span className={`flex h-6 w-6 items-center justify-center rounded-md border ${checked ? "border-primary bg-primary text-white" : "border-border bg-elevated"}`}>{checked && <CheckIcon width={14} height={14} />}</span>
+                  </button>
                   <Link to={`/produto/${item.productId}`} className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-elevated">
                     {item.imageUrl ? <img src={item.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" /> : (
                       <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={22} height={22} /></div>
@@ -108,13 +140,16 @@ export default function CartPage() {
                     {item.stock > 0 && item.quantity >= item.stock && <p className="mt-1 text-xs text-sun">{t("cart.maxStock")}</p>}
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
+            </div>
 
             {/* Resumo: coluna ao lado no ecrã largo; no telemóvel vira a barra fixa em baixo */}
             <aside className="hidden rounded-2xl border border-border bg-surface p-5 md:sticky md:top-28 md:block">
               <h2 className="mb-4 text-base font-bold">{t("cart.summary")}</h2>
-              <div className="flex items-baseline justify-between"><span className="text-sm text-ink-muted">{t("cart.subtotal")}</span><span className="font-display text-2xl font-extrabold">{formatMzn(subtotal)}</span></div>
+              <div className="flex items-baseline justify-between"><span className="text-sm text-ink-muted">{allSelected ? t("cart.subtotal") : t("cart.selectedSubtotal")}</span><span className="font-display text-2xl font-extrabold">{formatMzn(selectedSubtotal)}</span></div>
+              {someLeftOut && <p className="mt-2 text-xs text-ink-muted">{items.length - selectedItems.length} {t("cart.restStay")}</p>}
               {!token && <p className="mt-3 text-xs text-warning">{t("cart.loginRequired")}</p>}
               {error && <p role="alert" className="mt-3 text-xs text-danger">{error}</p>}
               {checkoutButton("mt-4 w-full")}
@@ -128,7 +163,7 @@ export default function CartPage() {
         <div className="bar-above-nav fixed inset-x-0 z-40 border-t border-border bg-bg/95 backdrop-blur md:hidden">
           {(!token || error) && <p role={error ? "alert" : undefined} className={`px-4 pt-2 text-xs ${error ? "text-danger" : "text-warning"}`}>{error ?? t("cart.loginRequired")}</p>}
           <div className="flex items-center gap-3 px-4 py-3">
-            <div><p className="text-xs text-ink-muted">{t("cart.total")}</p><p className="font-display text-xl font-extrabold leading-tight">{formatMzn(subtotal)}</p></div>
+            <div><p className="text-xs text-ink-muted">{allSelected ? t("cart.total") : t("cart.selectedSubtotal")}</p><p className="font-display text-xl font-extrabold leading-tight">{formatMzn(selectedSubtotal)}</p>{someLeftOut && <p className="text-[11px] text-ink-faint">{items.length - selectedItems.length} {t("cart.restStay")}</p>}</div>
             {checkoutButton("ml-auto shrink-0")}
           </div>
         </div>

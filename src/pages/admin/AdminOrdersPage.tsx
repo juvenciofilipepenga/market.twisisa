@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ClipboardIcon } from "@/components/icons";
+import { OrderTrackingForm, TRACKABLE } from "@/components/admin/OrderTrackingForm";
 
 const PAGE_SIZE = 20;
 // Mudanças que se fazem à mão mas custam caro enganar: pedem confirmação.
@@ -153,6 +154,10 @@ export default function AdminOrdersPage() {
                           {t("common.save")}
                         </Button>
                       </div>
+                    )}
+
+                    {token && TRACKABLE.includes(order.status) && (
+                      <OrderTrackingForm order={order} token={token} onUpdated={(u) => setOrders((prev) => prev?.map((o) => (o.id === order.id ? { ...o, ...u } : o)) ?? null)} />
                     )}
                   </div>
                 )}

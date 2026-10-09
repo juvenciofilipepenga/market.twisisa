@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
+import { useCart } from "@/cart/CartContext";
+import { consumePending } from "@/lib/cartPending";
 import { useLocale } from "@/i18n/LocaleContext";
 import { api, ApiError } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
@@ -10,6 +12,7 @@ import type { Invoice, Order, PaymentFailureKind, PaymentMethodId, PaymentView }
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { PaymentShell } from "@/components/payment/PaymentShell";
 import { MethodStep, phoneValid } from "@/components/payment/MethodStep";
+import { SendingStep } from "@/components/payment/SendingStep";
 import { WaitingStep } from "@/components/payment/WaitingStep";
 import { SuccessStep } from "@/components/payment/SuccessStep";
 import { FailureModal } from "@/components/payment/FailureModal";
@@ -18,7 +21,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 
-type Step = "loading" | "choose" | "waiting" | "success" | "blocked" | "not-found";
+type Step = "loading" | "choose" | "sending" | "waiting" | "success" | "blocked" | "not-found";
 const ACTIVE = new Set(["INITIATED", "AUTHENTICATING", "PENDING_CONFIRMATION"]);
 const PAID_ORDER = new Set(["PAID", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"]);
 
@@ -31,6 +34,7 @@ export default function PaymentPage() {
   const { token } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const { removePaid } = useCart();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [step, setStep] = useState<Step>("loading");
@@ -122,11 +126,20 @@ export default function PaymentPage() {
     return () => window.clearTimeout(id);
   }, [step, invoice, payment, token, loadInvoice]);
 
+  // Pagamento confirmado pelo servidor: SÓ agora os itens pagos saem do carrinho (os não escolhidos ficam).
+  // consumePending apaga o registo, por isso nunca se desconta duas vezes.
+  useEffect(() => {
+    if (step !== "success") return;
+    const record = consumePending(orderId);
+    if (record) removePaid(record.lines);
+  }, [step, orderId, removePaid]);
+
   async function pay() {
     if (!token || !order) return;
     setPhoneTouched(true);
     if (!phoneValid(method, phone)) return;
     setPaying(true);
+    setStep("sending"); // feedback imediato: "A enviar o pedido para o seu telemóvel…" em vez de só um spinner no botão
     try {
       const payload = method === "CARD"
         ? ({ provider: "ZUMBOPAY", method: "CARD" } as const)
@@ -139,6 +152,7 @@ export default function PaymentPage() {
         const view = await api.payments.status(err.data.paymentId, token).catch(() => null);
         if (view) { applyView(view, true); return; }
       }
+      setStep("choose");
       setFailure("UNAVAILABLE");
     } finally {
       setPaying(false);
@@ -183,6 +197,7 @@ export default function PaymentPage() {
           paying={paying} onPay={pay}
         />
       )}
+      {step === "sending" && order && <SendingStep method={method} phone={phone} total={order.totalMzn} />}
       {step === "waiting" && payment && <WaitingStep payment={payment} offline={offline} onChangeMethod={changeMethod} />}
       {step === "success" && payment && <SuccessStep payment={payment} invoice={invoice} celebrate={celebrate} onTrack={goOrder} onInvoice={downloadInvoice} />}
 

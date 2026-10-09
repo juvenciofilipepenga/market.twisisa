@@ -134,6 +134,7 @@ export interface OrderStatusHistoryEntry {
   from: OrderStatus | null;
   to: OrderStatus;
   reason: string | null;
+  location?: string | null;
   actorId: string | null;
   createdAt: string;
 }
@@ -192,6 +193,9 @@ export interface Order {
   items?: OrderItem[];
   payments?: Payment[];
   statusHistory?: OrderStatusHistoryEntry[];
+  estimatedDeliveryAt?: string | null;
+  trackingCode?: string | null;
+  carrier?: string | null;
   invoice?: Invoice | null;
   user?: { id: string; name: string; email: string } | null;
 }

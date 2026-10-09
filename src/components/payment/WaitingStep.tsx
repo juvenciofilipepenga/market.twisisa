@@ -4,7 +4,7 @@ import { formatMzn } from "@/lib/format";
 import { formatCountdown, maskPhone } from "@/lib/payments";
 import type { PaymentView } from "@/lib/types";
 import { Button } from "../ui/Button";
-import { PhoneIcon } from "../icons";
+import { CheckIcon, PhoneIcon } from "../icons";
 
 // Ecrã de espera: o cliente está a confirmar no telemóvel. Nada de celebração aqui — só quando o servidor disser "success".
 export function WaitingStep({ payment, offline, onChangeMethod }: { payment: PaymentView; offline: boolean; onChangeMethod: () => unknown }) {
@@ -12,6 +12,7 @@ export function WaitingStep({ payment, offline, onChangeMethod }: { payment: Pay
   const isCard = payment.method === "CARD";
   const method = payment.method === "EMOLA" ? "EMOLA" : "MPESA";
   const [now, setNow] = useState(() => Date.now());
+  const [shownAt] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -26,12 +27,21 @@ export function WaitingStep({ payment, offline, onChangeMethod }: { payment: Pay
         <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white"><PhoneIcon width={34} height={34} /></span>
       </div>
 
-      <h1 className="mt-7 font-display text-2xl font-extrabold">{t(isCard ? "pay.waiting.card.title" : "pay.waiting.title")}</h1>
+      {!isCard && (
+        <p className="pop mt-6 inline-flex items-center gap-1.5 rounded-full bg-success/15 px-3 py-1 text-xs font-bold text-success">
+          <CheckIcon width={13} height={13} />{t("pay.sent")}
+        </p>
+      )}
+      <h1 className="mt-3 font-display text-2xl font-extrabold">{t(isCard ? "pay.waiting.card.title" : "pay.waiting.title")}</h1>
       <p className="mt-2 max-w-xs text-sm text-ink-muted">
         {isCard
           ? t("pay.waiting.card.body")
-          : <>{t("pay.waiting.sentTo")} <span className="font-semibold text-ink">{maskPhone(payment.paymentNumber)}</span>. {t(`pay.waiting.body.${method}`)}</>}
+          : <>{t("pay.waiting.sentTo")} <span className="font-semibold text-ink">{maskPhone(payment.paymentNumber)}</span>.</>}
       </p>
+      {/* A instrução mais importante do ecrã: é aqui que o cliente tem de agir. */}
+      {!isCard && (
+        <p className="mt-4 w-full rounded-2xl border border-primary/50 bg-primary-soft px-4 py-3 text-base font-bold">{t(`pay.waiting.pin.${method}`)}</p>
+      )}
       <p className="mt-4 font-display text-3xl font-extrabold tabular-nums">{formatMzn(payment.amountMzn)}</p>
 
       {!isCard && (
@@ -50,6 +60,7 @@ export function WaitingStep({ payment, offline, onChangeMethod }: { payment: Pay
       <p className="mt-5 text-xs text-ink-faint">{t("pay.waiting.dontClose")}</p>
       {remaining !== null && remaining > 0 && <p className="mt-1 text-xs text-ink-faint">{t("pay.waiting.expires")} <span className="font-mono font-semibold text-ink-muted">{formatCountdown(remaining)}</span></p>}
       {remaining !== null && remaining <= 0 && <p className="mt-1 text-xs text-ink-faint">{t("pay.waiting.checking")}</p>}
+      {!isCard && now - shownAt > 20_000 && <p className="mt-3 max-w-xs text-xs text-ink-muted">{t("pay.waiting.notReceived")}</p>}
       {offline && <p role="status" className="mt-3 rounded-xl bg-warning/10 px-3 py-2 text-xs text-warning">{t("pay.waiting.offline")}</p>}
 
       <Button variant="ghost" className="mt-6" onClick={onChangeMethod}>{t("pay.waiting.change")}</Button>

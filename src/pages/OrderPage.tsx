@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
 import { img } from "@/lib/images";
 import type { Order } from "@/lib/types";
+import { orderStatusLabel } from "@/lib/orderStatus";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { Button, buttonClass } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -26,7 +27,7 @@ const CANCELLABLE = new Set(["PENDING_PAYMENT", "PAYMENT_REVIEW", "PAID"]);
 export default function OrderPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   useDocumentMeta({ title: `${t("order.title")} · Twisisa Market`, noindex: true });
   const { token } = useAuth();
   const toast = useToast();
@@ -125,6 +126,32 @@ export default function OrderPage() {
               <OrderTimeline status={ready.status} />
             </div>
 
+            {["PAID", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(ready.status) && (() => {
+              const last = [...(ready.statusHistory ?? [])].reverse().find((h) => h.location);
+              const eta = ready.estimatedDeliveryAt ? new Date(ready.estimatedDeliveryAt).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" }) : null;
+              const delivered = ready.status === "DELIVERED";
+              return (
+                <div className="rounded-2xl border border-border bg-surface p-4">
+                  <h2 className="mb-3 text-sm font-bold">{t("order.track.title")}</h2>
+                  {!eta && !last && !ready.trackingCode && !ready.carrier ? (
+                    <p className="text-sm text-ink-muted">{t("order.track.noInfo")}</p>
+                  ) : (
+                    <dl className="space-y-2.5 text-sm">
+                      {eta && !delivered && <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t("order.track.eta")}</dt><dd className="text-right font-semibold capitalize">{eta}</dd></div>}
+                      {last && (
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-ink-muted">{t("order.track.where")}</dt>
+                          <dd className="text-right"><span className="font-semibold">{last.location}</span><span className="block text-xs text-ink-faint">{new Date(last.createdAt).toLocaleString(locale)}</span></dd>
+                        </div>
+                      )}
+                      {ready.carrier && <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t("order.track.carrier")}</dt><dd className="font-semibold">{ready.carrier}</dd></div>}
+                      {ready.trackingCode && <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t("order.track.code")}</dt><dd className="font-mono text-xs font-semibold">{ready.trackingCode}</dd></div>}
+                    </dl>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="rounded-2xl border border-border bg-surface p-4">
               <h2 className="mb-2 text-sm font-semibold text-ink-muted">{t("order.items")}</h2>
               <div className="space-y-1.5">
@@ -211,8 +238,9 @@ export default function OrderPage() {
                   {ready.statusHistory.map((h) => (
                     <li key={h.id} className="relative text-sm">
                       <span aria-hidden="true" className="absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
-                      <p className="font-medium">{h.to}{h.reason ? <span className="font-normal text-ink-muted"> — {h.reason}</span> : null}</p>
-                      <p className="text-xs text-ink-faint">{new Date(h.createdAt).toLocaleString()}</p>
+                      <p className="font-medium">{orderStatusLabel[locale][h.to] ?? h.to}{h.location ? <span className="font-normal text-ink-muted"> · {h.location}</span> : null}</p>
+                      {h.reason && <p className="text-sm text-ink-muted">{h.reason}</p>}
+                      <p className="text-xs text-ink-faint">{new Date(h.createdAt).toLocaleString(locale)}</p>
                     </li>
                   ))}
                 </ol>

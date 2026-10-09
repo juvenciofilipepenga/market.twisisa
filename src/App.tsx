@@ -35,6 +35,7 @@ import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminInvoicePage from "./pages/admin/AdminInvoicePage";
+import { CartReconciler } from "./cart/CartReconciler";
 
 const ChatWidget = lazy(() => import("./components/chat/ChatWidget"));
 const AdminChatPage = lazy(() => import("./pages/admin/AdminChatPage"));
@@ -48,6 +49,7 @@ export default function App() {
           <CartProvider>
             <NotificationsProvider>
             <SessionWatcher />
+            <CartReconciler />
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
