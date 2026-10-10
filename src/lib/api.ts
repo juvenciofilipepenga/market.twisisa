@@ -2,7 +2,7 @@ import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
   Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary,
-  PaymentView, PaymentMethodId, InvoiceSettings
+  PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment
 } from "./types";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
@@ -79,7 +79,8 @@ export type InitiatePaymentPayload =
   | { provider: "MANUAL"; method: "EMOLA"; paymentNumber: string }
   | { provider: "MANUAL"; method: "CARD" }
   | { provider: "ZUMBOPAY"; method: "MPESA" | "EMOLA"; paymentNumber: string }
-  | { provider: "ZUMBOPAY"; method: "CARD" };
+  | { provider: "ZUMBOPAY"; method: "CARD" }
+  | { provider: "MANUAL"; method: "MPESA" | "EMOLA"; paymentNumber: string; payerName: string };
 
 export const api = {
   products: {
@@ -118,12 +119,15 @@ export const api = {
   },
   payments: {
     // Métodos online realmente disponíveis (carteira configurada) + se o servidor está em modo de teste.
-    methods: () => request<{ methods: PaymentMethodId[]; sandbox: boolean; confirmWindowSeconds: number }>("/payments/methods"),
+    methods: () => request<PaymentMethodsInfo>("/payments/methods"),
     initiate: (orderId: string, payload: InitiatePaymentPayload, token: string) =>
       request<PaymentView>(`/orders/${orderId}/payments/initiate`, { method: "POST", body: payload, token }),
     // Pergunta o estado real (o servidor confirma com o ZumboPay). É o que o ecrã de espera consulta de 3 em 3 segundos.
     status: (id: string, token: string) => request<PaymentView>(`/payments/${id}/status`, { token }),
     cancel: (id: string, token: string) => request<PaymentView>(`/payments/${id}/cancel`, { method: "POST", token }),
+    // Pagamento manual: "Já paguei". A partir daqui o pedido aparece ao admin. O código da mensagem é opcional.
+    claim: (id: string, payload: { transactionCode?: string }, token: string) =>
+      request<PaymentView>(`/payments/${id}/claim`, { method: "POST", body: payload, token }),
     get: (id: string, token: string) => request<Payment>(`/payments/${id}`, { token }),
     submitProof: (id: string, proofUrl: string, token: string) =>
       request<Payment>(`/payments/${id}/proof`, { method: "POST", body: { proofUrl }, token })
@@ -209,6 +213,12 @@ export const api = {
       addTracking: (token: string, id: string, payload: { note?: string; location?: string; estimatedDeliveryAt?: string; trackingCode?: string; carrier?: string }) =>
         request<Order>(`/admin/orders/${id}/tracking`, { method: "POST", body: payload, token })
     },
+    paymentSettings: {
+      get: (token: string) => request<PaymentSettings>("/admin/payment-settings", { token }),
+      update: (token: string, payload: Omit<PaymentSettings, "onlineStatus" | "zpFailures" | "zpDegradedUntil">) =>
+        request<PaymentSettings>("/admin/payment-settings", { method: "PUT", body: payload, token }),
+      resetBreaker: (token: string) => request<PaymentSettings>("/admin/payment-settings/reset-degraded", { method: "POST", token })
+    },
     invoiceSettings: {
       get: (token: string) => request<InvoiceSettings>("/admin/invoice-settings", { token }),
       update: (token: string, payload: Omit<InvoiceSettings, "nextNumber" | "vatRatePercent"> & { vatRatePercent: number }) =>
@@ -216,6 +226,7 @@ export const api = {
       previewPdf: (token: string) => downloadFile("/admin/invoice-settings/preview", token)
     },
     payments: {
+      pendingReview: (token: string) => request<PendingReviewPayment[]>("/admin/payments/pending-review", { token }),
       review: (token: string, id: string, approved: boolean, note?: string) =>
         request<Payment>(`/admin/payments/${id}/review`, { method: "POST", body: { approved, note }, token })
     },

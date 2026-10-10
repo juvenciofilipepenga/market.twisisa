@@ -122,6 +122,12 @@ export default function AdminOrdersPage() {
                               <span>{p.provider} · {p.method ?? "—"} · {p.reference}</span>
                               <span className="font-semibold">{labelOr(t, `admin.pay.${p.status}`, p.status)}</span>
                             </div>
+                            {(p.transactionCode || p.paymentNumber) && (
+                              <p className="mt-1 text-ink-muted">
+                                {p.transactionCode && <>{t("admin.orders.code")}: <span className="font-mono font-semibold text-ink">{p.transactionCode}</span></>}
+                                {p.paymentNumber && <> · {p.paymentNumber}</>}
+                              </p>
+                            )}
                             {p.proofUrl && (
                               <a href={p.proofUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-primary underline">
                                 {t("admin.orders.reviewProof")}

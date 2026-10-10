@@ -1,12 +1,12 @@
 import { useLocale } from "@/i18n/LocaleContext";
 import { formatMzn } from "@/lib/format";
 import { maskPhone } from "@/lib/payments";
-import type { PaymentMethodId } from "@/lib/types";
+import type { PaymentChoice } from "@/lib/types";
 import { PhoneIcon, ShieldIcon } from "../icons";
 
 // Aparece NO MOMENTO em que o cliente carrega em "Pagar", enquanto o servidor pede ao ZumboPay para enviar o pedido.
 // Assim nunca há um botão a girar sem explicação: o cliente sabe o que está a acontecer.
-export function SendingStep({ method, phone, total }: { method: PaymentMethodId; phone: string; total: string }) {
+export function SendingStep({ method, phone, total }: { method: PaymentChoice; phone: string; total: string }) {
   const { t } = useLocale();
   const isCard = method === "CARD";
   return (

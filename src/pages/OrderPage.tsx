@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { OrderTimeline } from "@/components/order/OrderTimeline";
 import { OrderBanner } from "@/components/order/OrderBanner";
-import { ChevronLeftIcon, ClipboardIcon } from "@/components/icons";
+import { ChevronLeftIcon } from "@/components/icons";
 
 // Mesma lista de estados canceláveis que o backend usa em src/routes/orders.ts (const
 // cancellable) — mantido em sincronia à mão; o servidor volta a validar sempre.
@@ -32,15 +32,9 @@ export default function OrderPage() {
   const { token } = useAuth();
   const toast = useToast();
   const [order, setOrder] = useState<Order | null | "not-found">(null);
-  const [initiateError, setInitiateError] = useState<string | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
-  const [submittingProof, setSubmittingProof] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
-
-  const proofPreview = useMemo(() => (proofFile ? URL.createObjectURL(proofFile) : null), [proofFile]);
-  useEffect(() => () => { if (proofPreview) URL.revokeObjectURL(proofPreview); }, [proofPreview]);
 
   function load() {
     if (!token) return;
@@ -50,21 +44,6 @@ export default function OrderPage() {
   }
   useEffect(load, [id, token]);
 
-  async function submitProof(paymentId: string) {
-    if (!token || !proofFile) return;
-    setSubmittingProof(true);
-    try {
-      const uploaded = await api.media.upload(proofFile, token);
-      await api.payments.submitProof(paymentId, uploaded.url, token);
-      setProofFile(null);
-      load();
-    } catch {
-      setInitiateError(t("common.error"));
-    } finally {
-      setSubmittingProof(false);
-    }
-  }
-
   async function cancelOrder() {
     if (!token || !order || order === "not-found" || cancelReason.trim().length < 3) return;
     setCancelling(true);
@@ -73,7 +52,7 @@ export default function OrderPage() {
       setShowCancelForm(false);
       load();
     } catch {
-      setInitiateError(t("common.error"));
+      toast.show(t("common.error"), { tone: "error", key: "cancel-order" });
     } finally {
       setCancelling(false);
     }
@@ -170,41 +149,16 @@ export default function OrderPage() {
               </div>
             </div>
 
-            {ready.status === "PENDING_PAYMENT" && (!activePayment || activePayment.provider === "ZUMBOPAY") && (
+            {(ready.status === "PENDING_PAYMENT" || ready.status === "PAYMENT_REVIEW") && (
               <div className="rounded-2xl border border-primary/40 bg-primary-soft p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-base font-bold">{t("pay.pending.title")}</h2>
-                    <p className="mt-1 text-sm text-ink-muted">{t(activePayment ? "pay.pending.inProgress" : "pay.pending.body")}</p>
+                    <h2 className="text-base font-bold">{t(ready.status === "PAYMENT_REVIEW" ? "pay.review.title" : "pay.pending.title")}</h2>
+                    <p className="mt-1 text-sm text-ink-muted">{t(ready.status === "PAYMENT_REVIEW" ? "pay.review.body" : activePayment ? "pay.pending.inProgress" : "pay.pending.body")}</p>
                   </div>
                   <img src={img.mascotPayment} alt="" width={900} height={952} loading="lazy" className="h-14 w-auto shrink-0 object-contain" />
                 </div>
-                <Link to={`/pagamento/${ready.id}`} className={buttonClass("primary", "lg", "mt-3 w-full")}>{t(activePayment ? "pay.pending.resume" : "pay.pending.cta")}</Link>
-              </div>
-            )}
-
-            {initiateError && <p role="alert" className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{initiateError}</p>}
-
-            {activePayment && activePayment.provider === "MANUAL" && (
-              <div className="rounded-2xl border border-border bg-surface p-4">
-                <h2 className="mb-2 text-base font-bold">{t("payment.title")}</h2>
-                <p className="text-xs text-ink-faint">{t("payment.reference")}: <span className="font-mono text-ink-muted">{activePayment.reference}</span></p>
-                <p className="mt-1 text-sm">{t("payment.status")}: <span className="font-semibold">{activePayment.status}</span></p>
-                {activePayment.status === "PROOF_SUBMITTED" || activePayment.status === "UNDER_REVIEW" ? (
-                  <p className="mt-3 rounded-xl bg-warning/10 px-3 py-2 text-sm text-warning">{t("payment.proofSubmitted")}</p>
-                ) : activePayment.provider === "MANUAL" && !activePayment.proofUrl ? (
-                  <div className="mt-4 space-y-3">
-                    <p className="text-sm text-ink-muted">{t("payment.uploadProof")}</p>
-                    <label className="press flex min-h-[64px] cursor-pointer items-center gap-3 rounded-xl border border-dashed border-border bg-elevated p-3 hover:border-ink-faint">
-                      {proofPreview ? <img src={proofPreview} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /> : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface text-ink-faint"><ClipboardIcon width={20} height={20} /></span>}
-                      <span className="min-w-0 truncate text-sm text-ink-muted">{proofFile ? proofFile.name : t("payment.chooseFile")}</span>
-                      <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => setProofFile(e.target.files?.[0] ?? null)} />
-                    </label>
-                    <Button size="lg" variant="secondary" className="w-full" loading={submittingProof} disabled={!proofFile} onClick={() => submitProof(activePayment.id)}>
-                      {t("payment.submitProof")}
-                    </Button>
-                  </div>
-                ) : null}
+                <Link to={`/pagamento/${ready.id}`} className={buttonClass("primary", "lg", "mt-3 w-full")}>{t(ready.status === "PAYMENT_REVIEW" ? "pay.review.view" : activePayment ? "pay.pending.resume" : "pay.pending.cta")}</Link>
               </div>
             )}
 

@@ -5,7 +5,7 @@ import { Button } from "../ui/Button";
 import { Modal } from "../ui/Modal";
 
 // Erro "bom": diz o que aconteceu em português simples, tranquiliza sobre o dinheiro e dá duas saídas claras.
-export function FailureModal({ kind, onRetry, onClose, onDismiss }: { kind: PaymentFailureKind; onRetry: () => void; onClose: () => void; onDismiss: () => void }) {
+export function FailureModal({ kind, note, onRetry, onClose, onDismiss }: { kind: PaymentFailureKind; note?: string | null; onRetry: () => void; onClose: () => void; onDismiss: () => void }) {
   const { t } = useLocale();
   const retryable = kind !== "AMOUNT_MISMATCH";
   return (
@@ -17,6 +17,7 @@ export function FailureModal({ kind, onRetry, onClose, onDismiss }: { kind: Paym
       <div role="alertdialog" aria-live="assertive" className="pt-4 text-center">
         <h2 className="font-display text-xl font-extrabold">{t(`pay.fail.${kind}.title`)}</h2>
         <p className="mt-2 text-sm text-ink-muted">{t(`pay.fail.${kind}.body`)}</p>
+        {note && <p className="mt-2 rounded-xl bg-elevated px-3 py-2 text-sm"><span className="text-ink-muted">{t("pay.fail.storeNote")}: </span>{note}</p>}
         <div className="mt-5 space-y-2">
           {retryable && <Button size="lg" className="w-full" onClick={onRetry}>{t("pay.fail.retry")}</Button>}
           <Button size="lg" variant="secondary" className="w-full" onClick={onClose}>{t("pay.fail.close")}</Button>

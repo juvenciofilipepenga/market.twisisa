@@ -151,6 +151,8 @@ export interface Payment {
   proofUrl: string | null;
   method: string | null;
   providerPaymentId: string | null;
+  payerName?: string | null;
+  expiresAt?: string | null;
   failureCode?: string | null;
   failureMessage?: string | null;
   confirmedAt: string | null;
@@ -293,13 +295,21 @@ export interface OrderSummary {
   _count: { items: number };
 }
 
-export type PaymentFailureKind = "WRONG_PIN" | "INSUFFICIENT_FUNDS" | "CANCELLED" | "TIMEOUT" | "AMOUNT_MISMATCH" | "UNAVAILABLE" | "UNKNOWN";
+export type PaymentFailureKind = "MANUAL_EXPIRED" | "PROOF_REJECTED" | "WRONG_PIN" | "INSUFFICIENT_FUNDS" | "CANCELLED" | "TIMEOUT" | "AMOUNT_MISMATCH" | "UNAVAILABLE" | "UNKNOWN";
 export type PaymentMethodId = "MPESA" | "EMOLA" | "CARD";
 
 /** Estado do pagamento visto pelo ecrã de pagamento (GET /payments/:id/status). `success` só existe depois de o ZumboPay confirmar. */
 export interface PaymentView {
   id: string;
   orderId: string;
+  provider: string;
+  reference: string;
+  /** Nota da loja ao rejeitar um comprovativo. */
+  note: string | null;
+  payerName: string | null;
+  claimedAt: string | null;
+  /** Pagamento manual: até quando ainda se pode carregar em "Já paguei", mesmo depois de o prazo acabar. */
+  claimUntil: string | null;
   method: string | null;
   amountMzn: string;
   paymentNumber: string | null;
@@ -333,4 +343,55 @@ export interface InvoiceSettings {
   bankDetails: string | null;
   vatRatePercent: number | string;
   showSignature: boolean;
+}
+
+export type PaymentChoice = PaymentMethodId;
+export type OnlineStatus = "ok" | "degraded" | "disabled";
+
+export interface ManualDetails {
+  enabled: boolean;
+  mpesa: { number: string; name: string | null } | null;
+  emola: { number: string; name: string | null } | null;
+  bank: { name: string | null; nib: string; holder: string | null } | null;
+  instructions: string | null;
+}
+
+export interface PaymentMethodsInfo {
+  methods: PaymentMethodId[];
+  onlineStatus: OnlineStatus;
+  manual: ManualDetails;
+  manualWindowSeconds: number;
+  sandbox: boolean;
+  confirmWindowSeconds: number;
+}
+
+export interface PaymentSettings {
+  onlineEnabled: boolean;
+  manualEnabled: boolean;
+  mpesaNumber: string | null;
+  mpesaName: string | null;
+  emolaNumber: string | null;
+  emolaName: string | null;
+  bankName: string | null;
+  bankNib: string | null;
+  bankHolder: string | null;
+  instructions: string | null;
+  onlineStatus: OnlineStatus;
+  zpFailures: number;
+  zpDegradedUntil: string | null;
+}
+
+export interface PendingReviewPayment {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  method: string | null;
+  amountMzn: string;
+  payerName: string | null;
+  paymentNumber: string | null;
+  transactionCode: string | null;
+  proofUrl: string | null;
+  reference: string;
+  claimedAt: string;
 }

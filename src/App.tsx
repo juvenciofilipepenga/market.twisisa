@@ -35,6 +35,7 @@ import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminInvoicePage from "./pages/admin/AdminInvoicePage";
+import AdminPaymentsPage from "./pages/admin/AdminPaymentsPage";
 import { CartReconciler } from "./cart/CartReconciler";
 
 const ChatWidget = lazy(() => import("./components/chat/ChatWidget"));
@@ -83,6 +84,7 @@ export default function App() {
                 <Route path="pedidos" element={<AdminOrdersPage />} />
                 <Route path="utilizadores" element={<AdminUsersPage />} />
                 <Route path="fatura" element={<AdminInvoicePage />} />
+                <Route path="pagamentos" element={<AdminPaymentsPage />} />
                 <Route
                   path="chat"
                   element={

@@ -68,7 +68,7 @@ export default function AdminDashboard() {
   }
 
   const attention = stats ? [
-    { key: "review", n: stats.attention.awaitingReview, label: t("admin.attn.review"), to: "/admin/pedidos?status=PAYMENT_REVIEW" },
+    { key: "review", n: stats.attention.awaitingReview, label: t("admin.attn.review"), to: "/admin/pagamentos" },
     { key: "chats", n: stats.attention.openChats, label: t("admin.attn.chats"), to: "/admin/chat" },
     { key: "cancel", n: stats.attention.cancelRequests, label: t("admin.attn.cancel"), to: "/admin/pedidos?status=CANCELLATION_REQUESTED" },
     { key: "refund", n: stats.attention.refundPending, label: t("admin.attn.refund"), to: "/admin/pedidos?status=REFUND_PENDING" },
