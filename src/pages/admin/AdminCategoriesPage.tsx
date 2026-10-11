@@ -1,16 +1,127 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useAuth } from "@/auth/AuthContext"; import { useLocale } from "@/i18n/LocaleContext"; import { api } from "@/lib/api"; import { adminError } from "@/lib/errors"; import type { Category } from "@/lib/types";
-import { Button } from "@/components/ui/Button"; import { Modal } from "@/components/ui/Modal"; import { Skeleton } from "@/components/ui/Skeleton"; import { TagIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { useAuth } from "@/auth/AuthContext";
+import { useLocale } from "@/i18n/LocaleContext";
+import { api } from "@/lib/api";
+import { adminError } from "@/lib/errors";
+import type { Category } from "@/lib/types";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { TagIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { CategoryAttributesModal } from "@/components/admin/CategoryAttributesModal";
+
+const inputCls = "w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-base focus:border-primary focus:outline-none sm:text-sm";
 
 export default function AdminCategoriesPage() {
-  const { token } = useAuth(); const { t } = useLocale(); const [categories, setCategories] = useState<Category[] | null>(null); const [name, setName] = useState(""); const [editing, setEditing] = useState<Category | null>(null); const [deleting, setDeleting] = useState<Category | null>(null); const [error, setError] = useState<string | null>(null); const [saving, setSaving] = useState(false);
-  async function reload() { try { setCategories(await api.categories.list()); } catch { setCategories([]); } }
+  const { token } = useAuth();
+  const { t } = useLocale();
+  const [categories, setCategories] = useState<Category[] | null>(null);
+  const [name, setName] = useState("");
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState<Category | null>(null);
+  const [attributesOf, setAttributesOf] = useState<Category | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function reload() {
+    try { setCategories(await api.categories.list()); } catch { setCategories([]); }
+  }
   useEffect(() => { void reload(); }, []);
-  async function onCreate(e: FormEvent) { e.preventDefault(); if (!token || !name.trim()) return; setSaving(true); setError(null); try { await api.admin.categories.create(token, name.trim()); setName(""); await reload(); } catch (err) { setError(adminError(err, t)); } finally { setSaving(false); } }
-  async function saveEdit() { if (!token || !editing || !editing.name.trim()) return; setSaving(true); setError(null); try { const updated = await api.admin.categories.update(token, editing.id, editing.name.trim()); setCategories((prev) => prev?.map((c) => c.id === updated.id ? updated : c) ?? prev); setEditing(null); } catch (err) { setError(adminError(err, t)); } finally { setSaving(false); } }
-  async function confirmDelete() { if (!token || !deleting) return; setSaving(true); setError(null); try { await api.admin.categories.remove(token, deleting.id); setCategories((prev) => prev?.filter((c) => c.id !== deleting.id) ?? prev); setDeleting(null); } catch (err) { setError(adminError(err, t)); } finally { setSaving(false); } }
-  return <div><div className="mb-4 flex items-center justify-between"><h1 className="text-xl font-bold">{t("admin.nav.categories")}</h1></div><form onSubmit={onCreate} className="mb-5 flex max-w-sm gap-2"><input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nova categoria" className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm focus:border-primary focus:outline-none" /><Button type="submit" loading={saving}><PlusIcon width={16} height={16} />{t("common.create")}</Button></form>{error && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}{categories === null && <div className="space-y-2">{[1,2,3].map((i) => <Skeleton key={i} className="h-12 w-full max-w-sm" />)}</div>}{categories !== null && <div className="max-w-lg space-y-2">{categories.map((c) => <div key={c.id} className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5"><TagIcon width={16} height={16} className="shrink-0 text-ink-faint" /><span className="min-w-0 flex-1 truncate text-sm">{c.name}</span><Button size="sm" variant="ghost" onClick={() => setEditing(c)}>{t("common.edit")}</Button><Button size="icon" variant="ghost" onClick={() => setDeleting(c)} aria-label="Eliminar"><TrashIcon width={16} height={16} /></Button></div>)}</div>}
-    {editing && <Modal title={t("common.edit")} onClose={() => setEditing(null)}><input autoFocus value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-sm focus:border-primary focus:outline-none" /><div className="mt-4 flex gap-2"><Button variant="secondary" className="flex-1" onClick={() => setEditing(null)}>{t("common.cancel")}</Button><Button className="flex-1" loading={saving} onClick={saveEdit}>{t("common.save")}</Button></div></Modal>}
-    {deleting && <Modal title="Eliminar categoria" onClose={() => setDeleting(null)}><p className="text-sm text-ink-muted">Tem a certeza de que pretende eliminar <strong>{deleting.name}</strong>? Categorias com produtos associados não podem ser eliminadas.</p><div className="mt-4 flex gap-2"><Button variant="secondary" className="flex-1" onClick={() => setDeleting(null)}>{t("common.cancel")}</Button><Button className="flex-1" loading={saving} onClick={confirmDelete}>Eliminar</Button></div></Modal>}
-  </div>;
+
+  async function onCreate(e: FormEvent) {
+    e.preventDefault();
+    if (!token || !name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.admin.categories.create(token, name.trim());
+      setName("");
+      await reload();
+    } catch (err) {
+      setError(adminError(err, t));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function saveEdit() {
+    if (!token || !editing || !editing.name.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await api.admin.categories.update(token, editing.id, editing.name.trim());
+      setCategories((prev) => prev?.map((c) => (c.id === updated.id ? updated : c)) ?? prev);
+      setEditing(null);
+    } catch (err) {
+      setError(adminError(err, t));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!token || !deleting) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.admin.categories.remove(token, deleting.id);
+      setCategories((prev) => prev?.filter((c) => c.id !== deleting.id) ?? prev);
+      setDeleting(null);
+    } catch (err) {
+      setError(adminError(err, t));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <h1 className="mb-1 text-xl font-bold">{t("admin.nav.categories")}</h1>
+      <p className="mb-4 max-w-lg text-sm text-ink-muted">Cada categoria tem as suas características técnicas (por exemplo, Marca e RAM nos computadores). Toque em «Características» para as definir.</p>
+
+      <form onSubmit={onCreate} className="mb-5 flex max-w-sm gap-2">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nova categoria" className={inputCls} />
+        <Button type="submit" loading={saving}><PlusIcon width={16} height={16} />{t("common.create")}</Button>
+      </form>
+
+      {error && <p role="alert" className="mb-3 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
+      {categories === null && <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full max-w-sm" />)}</div>}
+
+      {categories !== null && (
+        <div className="max-w-lg space-y-2">
+          {categories.map((c) => (
+            <div key={c.id} className="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5">
+              <TagIcon width={16} height={16} className="shrink-0 text-ink-faint" />
+              <span className="min-w-0 flex-1 truncate text-sm">{c.name}</span>
+              <Button size="sm" variant="secondary" onClick={() => setAttributesOf(c)}>Características</Button>
+              <Button size="sm" variant="ghost" onClick={() => setEditing(c)}>{t("common.edit")}</Button>
+              <Button size="icon" variant="ghost" onClick={() => setDeleting(c)} aria-label="Eliminar"><TrashIcon width={16} height={16} /></Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {editing && (
+        <Modal title={t("common.edit")} onClose={() => setEditing(null)}>
+          <input autoFocus value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className={inputCls} />
+          <div className="mt-4 flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setEditing(null)}>{t("common.cancel")}</Button>
+            <Button className="flex-1" loading={saving} onClick={saveEdit}>{t("common.save")}</Button>
+          </div>
+        </Modal>
+      )}
+
+      {deleting && (
+        <Modal title="Eliminar categoria" onClose={() => setDeleting(null)}>
+          <p className="text-sm text-ink-muted">Tem a certeza de que pretende eliminar <strong>{deleting.name}</strong>? Categorias com produtos associados não podem ser eliminadas.</p>
+          <div className="mt-4 flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setDeleting(null)}>{t("common.cancel")}</Button>
+            <Button className="flex-1" loading={saving} onClick={confirmDelete}>Eliminar</Button>
+          </div>
+        </Modal>
+      )}
+
+      {attributesOf && <CategoryAttributesModal category={attributesOf} onClose={() => setAttributesOf(null)} />}
+    </div>
+  );
 }

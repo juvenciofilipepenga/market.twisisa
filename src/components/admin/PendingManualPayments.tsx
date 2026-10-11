@@ -14,7 +14,7 @@ function ago(iso: string, t: (k: string) => string): string {
 
 // A lista de trabalho do admin no pagamento manual: SÓ os pedidos em que o cliente carregou em "Já paguei".
 // A decisão é sempre humana: o admin confere NO HISTÓRICO DA SUA CONTA se entrou aquele valor, daquele número, àquela hora.
-export function PendingManualPayments({ token }: { token: string }) {
+export function PendingManualPayments({ token, hideWhenEmpty = false, onChanged }: { token: string; hideWhenEmpty?: boolean; onChanged?: () => void }) {
   const { t, locale } = useLocale();
   const toast = useToast();
   const [items, setItems] = useState<PendingReviewPayment[] | null>(null);
@@ -37,6 +37,7 @@ export function PendingManualPayments({ token }: { token: string }) {
       await api.admin.payments.review(token, p.id, approved, notes[p.id]?.trim() || undefined);
       toast.show(t(approved ? "admin.payset.approved" : "admin.payset.rejected"), { key: "pr" });
       await load();
+      onChanged?.();
     } catch {
       toast.show(t("admin.payset.error"), { tone: "error", key: "pr" });
     } finally {
@@ -44,8 +45,11 @@ export function PendingManualPayments({ token }: { token: string }) {
     }
   }
 
+  // No painel, quando não há nada por confirmar a secção desaparece (o bloco "Precisa da sua atenção" só mostra trabalho).
+  if (hideWhenEmpty && items !== null && items.length === 0) return null;
+
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4">
+    <section className="rounded-2xl border border-primary/40 bg-surface p-4">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-bold">
         {t("admin.payset.pending")}
         {items && items.length > 0 && <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-white">{items.length}</span>}

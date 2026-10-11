@@ -6,10 +6,14 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { flyToCart } from "@/lib/fx";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { deriveOptionDefs, findSelectedVariant } from "@/lib/catalog";
+import { Modal } from "@/components/ui/Modal";
+import { OptionPicker } from "@/components/product/OptionPicker";
+import { ProductSpecs } from "@/components/product/ProductSpecs";
 import { SITE_URL } from "@/config/site";
 import { img } from "@/lib/images";
 import { formatMzn } from "@/lib/format";
-import type { Product, ProductVariant, Review } from "@/lib/types";
+import type { Product, Review } from "@/lib/types";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -31,11 +35,13 @@ export default function ProductPage() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
+  // Opções escolhidas pelo cliente: { Cor: "#000000", Tamanho: "M" }. A variante só existe com a combinação completa.
+  const [selected, setSelected] = useState<Record<string, string>>({});
   const [reviews, setReviews] = useState<{data: Review[]; summary:{average:number;count:number}} | null>(null);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const gallery = useRef<HTMLDivElement>(null);
   const buyBox = useRef<HTMLDivElement>(null);
 
@@ -67,7 +73,7 @@ export default function ProductPage() {
     setState({ kind: "loading" });
     setActiveImage(0);
     setQuantity(1);
-    setSelectedVariantId(null);
+    setSelected({});
     api.products.get(id)
       .then((product) => { if (!cancelled) setState({ kind: "ready", product }); })
       .catch((err: unknown) => {
@@ -101,7 +107,7 @@ export default function ProductPage() {
     if (!token) { setReviewMessage("Entre na sua conta para avaliar depois de uma compra."); return; }
     try {
       await api.reviews.create(id, token, { rating: reviewRating, comment: reviewComment.trim() || undefined });
-      setReviews(await api.reviews.list(id)); setReviewComment(""); setReviewMessage("Avaliação enviada.");
+      setReviews(await api.reviews.list(id)); setReviewComment(""); setReviewOpen(false); toast.show(t("product.review.sent"), { key: "review-sent" });
     } catch (err) { setReviewMessage(err instanceof Error ? err.message : "Não foi possível enviar a avaliação."); }
   }
 
@@ -121,8 +127,13 @@ export default function ProductPage() {
 
   function onAdd(product: Product) {
     const variants = product.variants ?? [];
-    const variant = variants.find((v) => v.id === selectedVariantId);
-    if (variants.length > 0 && !variant) { toast.show("Seleccione uma opção do produto.", { tone: "info", key: `variant-required:${product.id}` }); return; }
+    const defs = product.optionDefs ?? deriveOptionDefs(variants);
+    const variant = findSelectedVariant(variants, defs, selected);
+    if (variants.length > 0 && !variant) {
+      const missing = defs.filter((d) => !selected[d.name]).map((d) => d.name).join(", ");
+      toast.show(`${t("product.choose")} ${missing || t("product.chooseOptions")}.`, { tone: "info", key: `variant-required:${product.id}` });
+      return;
+    }
     const available = variant?.stock ?? product.stock;
     const inCart = Math.min(available, (items.find((i) => i.productId === product.id && i.variantId === (variant?.id ?? null))?.quantity ?? 0) + quantity);
     addItem(product, quantity, variant);
@@ -160,8 +171,12 @@ export default function ProductPage() {
         {state.kind === "ready" && (() => {
           const product = state.product;
           const variants = product.variants ?? [];
-          const selectedVariant = variants.find((v) => v.id === selectedVariantId);
+          const defs = product.optionDefs ?? deriveOptionDefs(variants);
+          const selectedVariant = findSelectedVariant(variants, defs, selected);
           const availableStock = selectedVariant?.stock ?? product.stock;
+          // Preços diferentes entre variantes: antes de escolher mostra "A partir de".
+          const priceVaries = !selectedVariant && variants.some((v) => Number(v.effectivePriceMzn ?? product.priceMzn) !== Number(product.priceMzn));
+          const shownPrice = selectedVariant?.effectivePriceMzn ?? (priceVaries ? product.priceFromMzn ?? product.priceMzn : product.priceMzn);
           const requiresVariant = variants.length > 0;
           const outOfStock = availableStock <= 0 || (requiresVariant && !selectedVariant);
           const low = !outOfStock && availableStock <= LOW_STOCK;
@@ -200,22 +215,23 @@ export default function ProductPage() {
 
                 <div className="flex flex-col gap-4">
                   <h1 className="text-2xl font-extrabold leading-tight md:text-3xl">{product.name}</h1>
-                  <p className="font-display text-3xl font-extrabold">{formatMzn(product.priceMzn)}</p>
+                  <p className="font-display text-3xl font-extrabold">{priceVaries && <span className="mr-2 text-sm font-semibold text-ink-muted">{t("product.from")}</span>}{formatMzn(shownPrice)}</p>
                   <p className={`flex items-center gap-2 text-sm font-medium ${outOfStock ? "text-danger" : low ? "text-sun" : "text-success"}`}>
                     <span className="h-2 w-2 rounded-full bg-current" />
-                    {requiresVariant && !selectedVariant ? "Seleccione uma opção" : outOfStock ? t("product.outOfStock") : `${availableStock} ${t("product.stock")}`}
+                    {requiresVariant && !selectedVariant ? `${t("product.choose")} ${defs.filter((d) => !selected[d.name]).map((d) => d.name).join(", ")}` : outOfStock ? t("product.outOfStock") : `${availableStock} ${t("product.stock")}`}
                   </p>
                   {product.description && <p className="whitespace-pre-line text-sm leading-relaxed text-ink-muted">{product.description}</p>}
-                  {variants.length > 0 && <div className="space-y-3 rounded-2xl border border-border p-3">
-                    {variants.some((v) => v.colorHex) && <div><p className="mb-2 text-sm font-semibold">Cor</p><div className="flex flex-wrap gap-2">{variants.filter((v, i, a) => v.colorHex && a.findIndex((x) => x.colorHex === v.colorHex) === i).map((v) => { const selected = variants.find((x) => x.colorHex === v.colorHex && (!selectedVariantId || x.id === selectedVariantId)); const active = selected?.id === selectedVariantId; return <button key={v.id} type="button" onClick={() => { const same = variants.find((x) => x.colorHex === v.colorHex && (!x.size || x.size === selectedVariant?.size)); setSelectedVariantId(same?.id ?? v.id); setQuantity(1); }} aria-label="Selecionar cor" className={`h-10 w-10 rounded-full border-2 p-0.5 transition-transform ${active ? "border-primary scale-105" : "border-border"}`}><span className="block h-full w-full rounded-full border border-black/10" style={{ backgroundColor: v.colorHex ?? "transparent" }} /></button>; })}</div></div>}
-                    {variants.some((v) => v.size) && <div><p className="mb-2 text-sm font-semibold">Tamanho</p><div className="flex flex-wrap gap-2">{[...new Set(variants.map((v) => v.size).filter(Boolean))].map((size) => { const active = selectedVariant?.size === size; return <button key={size} type="button" onClick={() => { const same = variants.find((v) => v.size === size && (!selectedVariant?.colorHex || v.colorHex === selectedVariant.colorHex)); setSelectedVariantId(same?.id ?? variants.find((v) => v.size === size)?.id ?? null); setQuantity(1); }} className={`min-w-12 rounded-xl border px-3 py-2 text-sm font-semibold transition ${active ? "border-primary bg-primary-soft text-primary" : "border-border hover:border-ink-faint"}`}>{size}</button>; })}</div></div>}
-                  </div>}
+                  {variants.length > 0 && (
+                    <OptionPicker defs={defs} variants={variants} selected={selected}
+                      onSelect={(name, value) => setSelected((prev) => ({ ...prev, [name]: value }))} onClear={() => setSelected({})} />
+                  )}
+                  {selectedVariant?.sku && <p className="-mt-2 text-xs text-ink-faint">{t("product.ref")} {selectedVariant.sku}</p>}
 
                   <div ref={buyBox} className="mt-1 flex items-center gap-3">
                     <div className="flex items-center rounded-xl border border-border" role="group" aria-label={t("product.quantity")}>
                       <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || outOfStock} aria-label="-" className="press flex h-12 w-11 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><MinusIcon width={16} height={16} /></button>
                       <span className="w-8 text-center text-sm font-bold tabular-nums">{quantity}</span>
-                      <button onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))} disabled={quantity >= product.stock || outOfStock} aria-label="+" className="press flex h-12 w-11 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><PlusIcon width={16} height={16} /></button>
+                      <button onClick={() => setQuantity((q) => Math.min(availableStock, q + 1))} disabled={quantity >= availableStock || outOfStock} aria-label="+" className="press flex h-12 w-11 items-center justify-center text-ink-muted hover:text-ink disabled:opacity-30"><PlusIcon width={16} height={16} /></button>
                     </div>
                     <Button size="lg" className="flex-1" disabled={outOfStock} onClick={() => onAdd(product)}>
                       {added ? <><CheckIcon className="pop" width={18} height={18} />{t("product.added")}</> : t("product.addToCart")}
@@ -224,24 +240,37 @@ export default function ProductPage() {
                 </div>
               </div>
 
+              <ProductSpecs attributes={product.attributes ?? []} />
+
               <section className="mt-8 border-t border-border pt-6">
                 <div className="flex items-end justify-between gap-3"><div><h2 className="text-lg font-extrabold">Avaliações</h2><p className="mt-1 text-sm text-ink-muted">{reviews?.summary.count ? `${reviews.summary.average.toFixed(1)}/5 · ${reviews.summary.count} avaliações` : "Ainda sem avaliações"}</p></div></div>
                 {reviews?.data.length ? <div className="mt-4 space-y-3">{reviews.data.slice(0,5).map(r=><article key={r.id} className="rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between"><strong className="text-sm">{r.userName}</strong><span className="text-sm font-semibold">{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span></div>{r.comment&&<p className="mt-2 text-sm leading-relaxed text-ink-muted">{r.comment}</p>}</article>)}</div>:null}
-                <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><p className="text-sm font-semibold">Já comprou este produto?</p><p className="mt-1 text-xs text-ink-muted">As avaliações só são aceites para contas com uma compra registada.</p><div className="mt-3 flex gap-1">{[1,2,3,4,5].map(n=><button key={n} type="button" onClick={()=>setReviewRating(n)} className={`text-xl ${n<=reviewRating?"text-primary":"text-ink-faint"}`} aria-label={`${n} estrelas`}>★</button>)}</div><textarea value={reviewComment} onChange={e=>setReviewComment(e.target.value)} rows={3} maxLength={1000} placeholder="Comentário (opcional)" className="mt-3 w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-sm focus:border-primary focus:outline-none"/><Button variant="secondary" className="mt-3" onClick={()=>void submitReview()}>Enviar avaliação</Button>{reviewMessage&&<p className="mt-2 text-xs text-ink-muted">{reviewMessage}</p>}</div>
+                <Button variant="secondary" className="mt-4 w-full" onClick={() => { setReviewMessage(null); setReviewOpen(true); }}>{t("product.review.write")}</Button>
+                {reviewOpen && (
+                  <Modal title={t("product.review.title")} size="sm" onClose={() => setReviewOpen(false)}>
+                    <p className="text-sm text-ink-muted">{t("product.review.hint")}</p>
+                    <div className="mt-3 flex gap-1" role="radiogroup" aria-label={t("product.review.rating")}>
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button key={n} type="button" role="radio" aria-checked={n === reviewRating} onClick={() => setReviewRating(n)} className={`press flex h-11 w-11 items-center justify-center text-2xl ${n <= reviewRating ? "text-primary" : "text-ink-faint"}`} aria-label={`${n} ${t("product.review.stars")}`}>★</button>
+                      ))}
+                    </div>
+                    <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={4} maxLength={1000} placeholder={t("product.review.comment")} className="mt-3 w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-base focus:border-primary focus:outline-none sm:text-sm" />
+                    {reviewMessage && <p role="status" className="mt-2 text-sm text-ink-muted">{reviewMessage}</p>}
+                    <div className="mt-4 flex gap-2">
+                      <Button variant="secondary" className="flex-1" onClick={() => setReviewOpen(false)}>{t("common.cancel")}</Button>
+                      <Button className="flex-1" onClick={async () => { await submitReview(); }}>{t("product.review.send")}</Button>
+                    </div>
+                  </Modal>
+                )}
               </section>
 
-              <section className="mt-8 border-t border-border pt-6">
-                <div><h2 className="text-lg font-extrabold">Avaliações</h2><p className="mt-1 text-sm text-ink-muted">{reviews?.summary.count ? `${reviews.summary.average.toFixed(1)}/5 · ${reviews.summary.count} avaliações` : "Ainda sem avaliações"}</p></div>
-                {reviews?.data.length ? <div className="mt-4 space-y-3">{reviews.data.slice(0,5).map(r => <article key={r.id} className="rounded-2xl border border-border bg-surface p-4"><div className="flex items-center justify-between gap-3"><strong className="text-sm">{r.userName}</strong><span className="text-sm text-primary">{"★".repeat(r.rating)}{"☆".repeat(5-r.rating)}</span></div>{r.comment && <p className="mt-2 text-sm leading-relaxed text-ink-muted">{r.comment}</p>}</article>)}</div> : null}
-                <div className="mt-4 rounded-2xl border border-border bg-surface p-4"><p className="text-sm font-semibold">Já comprou este produto?</p><p className="mt-1 text-xs text-ink-muted">As avaliações só são aceites para contas com uma compra registada.</p><div className="mt-3 flex gap-1">{[1,2,3,4,5].map(n => <button key={n} type="button" onClick={() => setReviewRating(n)} className={`text-xl ${n <= reviewRating ? "text-primary" : "text-ink-faint"}`} aria-label={`${n} estrelas`}>★</button>)}</div><textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} rows={3} maxLength={1000} placeholder="Comentário (opcional)" className="mt-3 w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-sm focus:border-primary focus:outline-none"/><Button variant="secondary" className="mt-3" onClick={() => void submitReview()}>Enviar avaliação</Button>{reviewMessage && <p className="mt-2 text-xs text-ink-muted">{reviewMessage}</p>}</div>
-              </section>
 
               {/* Barra fixa: telemóvel, só quando o botão principal não está visível */}
               <div className={`bar-above-nav fixed inset-x-0 z-40 border-t border-border bg-bg/95 backdrop-blur transition-transform duration-300 motion-reduce:transition-none md:hidden ${barVisible ? "" : "translate-y-full"}`} aria-hidden={!barVisible}>
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-xs text-ink-muted">{product.name}</p>
-                    <p className="font-display text-lg font-extrabold leading-tight">{formatMzn(Number(product.priceMzn) * quantity)}</p>
+                    <p className="font-display text-lg font-extrabold leading-tight">{formatMzn(Number(selectedVariant?.effectivePriceMzn ?? product.priceMzn) * quantity)}</p>
                   </div>
                   <Button size="lg" className="ml-auto shrink-0" disabled={outOfStock} tabIndex={barVisible ? 0 : -1} onClick={() => onAdd(product)}>
                     {added ? <CheckIcon className="pop" width={18} height={18} /> : t("product.addToCart")}

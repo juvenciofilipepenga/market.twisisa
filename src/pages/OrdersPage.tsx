@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { ClipboardIcon, DocumentIcon } from "@/components/icons";
 import { useAuth } from "@/auth/AuthContext";
+import { shortOrder } from "@/lib/orderNumber";
 import { useLocale } from "@/i18n/LocaleContext";
 import { api } from "@/lib/api";
 import { saveBlob } from "@/lib/download";
@@ -98,7 +99,7 @@ export default function OrdersPage() {
                   <Link to={`/encomenda/${order.id}`} className="block">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="font-semibold">#{order.orderNumber}</p>
+                        <p className="font-semibold" title={order.orderNumber}>{shortOrder(order.orderNumber)}</p>
                         <p className="text-xs text-ink-faint">{fmtDate.format(new Date(order.createdAt))}</p>
                       </div>
                       <OrderStatusBadge status={order.status} />

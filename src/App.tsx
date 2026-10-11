@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import NotificationPage from "./pages/NotificationPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LegalPage from "./pages/legal/LegalPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
@@ -59,6 +60,7 @@ export default function App() {
                 <Route path="/encomenda/:id" element={<RequireAuth><OrderPage /></RequireAuth>} />
                 <Route path="/perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />
                 <Route path="/notificacoes" element={<RequireAuth><NotificationsPage /></RequireAuth>} />
+                <Route path="/notificacoes/:id" element={<RequireAuth><NotificationPage /></RequireAuth>} />
                 <Route path="/instalar" element={<InstallPage />} />
                 <Route path="/definicoes" element={<SettingsPage />} />
                 <Route path="/mais" element={<MorePage />} />

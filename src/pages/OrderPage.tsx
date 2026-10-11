@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
 import { img } from "@/lib/images";
 import type { Order } from "@/lib/types";
+import { shortOrder } from "@/lib/orderNumber";
 import { orderStatusLabel } from "@/lib/orderStatus";
 import { OrderStatusBadge } from "@/components/admin/OrderStatusBadge";
 import { Button, buttonClass } from "@/components/ui/Button";
@@ -95,7 +96,7 @@ export default function OrderPage() {
 
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="truncate text-xl font-extrabold">{ready.orderNumber}</h1>
+                <h1 className="truncate text-xl font-extrabold" title={ready.orderNumber}>{shortOrder(ready.orderNumber)}</h1>
                 <p className="text-xs text-ink-faint">{new Date(ready.createdAt).toLocaleString()}</p>
               </div>
               <OrderStatusBadge status={ready.status} />
@@ -136,7 +137,12 @@ export default function OrderPage() {
               <div className="space-y-1.5">
                 {(ready.items ?? []).map((item) => (
                   <div key={item.id} className="flex justify-between gap-3 text-sm">
-                    <span className="min-w-0">{item.quantity}× {item.productName}</span>
+                    <span className="min-w-0">
+                      {item.quantity}× {item.productName}
+                      {(item.variantLabel || item.variantSize || item.variantColorHex) && (
+                        <span className="block text-xs text-ink-muted">{item.variantLabel ?? [item.variantColorHex, item.variantSize].filter(Boolean).join(" · ")}</span>
+                      )}
+                    </span>
                     <span className="shrink-0 text-ink-muted tabular-nums">{formatMzn(item.subtotalMzn)}</span>
                   </div>
                 ))}

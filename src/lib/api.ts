@@ -2,7 +2,7 @@ import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
   Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary,
-  PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment
+  PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
@@ -180,12 +180,22 @@ export const api = {
   },
   admin: {
     stats: (token: string, days: 7 | 14 | 30 | 90) => request<AdminStats>(`/admin/stats?days=${days}`, { token }),
+    attention: (token: string) => request<AdminAttention>("/admin/attention", { token }),
+    history: (token: string, page = 1, limit = 10) => request<{ items: AdminHistoryItem[]; hasMore: boolean }>(`/admin/history${qs({ page, limit })}`, { token }),
+    categoryAttributes: {
+      list: (token: string, categoryId: string) => request<CategoryAttribute[]>(`/admin/categories/${categoryId}/attributes`, { token }),
+      create: (token: string, categoryId: string, payload: CategoryAttributePayload) =>
+        request<CategoryAttribute>(`/admin/categories/${categoryId}/attributes`, { method: "POST", body: payload, token }),
+      update: (token: string, id: string, payload: Partial<Omit<CategoryAttributePayload, "type">>) =>
+        request<CategoryAttribute>(`/admin/category-attributes/${id}`, { method: "PATCH", body: payload, token }),
+      remove: (token: string, id: string) => request<void>(`/admin/category-attributes/${id}`, { method: "DELETE", token })
+    },
     products: {
       list: (token: string, params: { page?: number; limit?: number; includeInactive?: boolean; search?: string } = {}) =>
         request<PaginatedResponse<Product>>(`/admin/products${qs(params)}`, { token }),
-      create: (token: string, payload: { name: string; description?: string; priceMzn: number; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }) =>
+      create: (token: string, payload: Omit<ProductWritePayload, "description" | "categoryId"> & { description?: string; categoryId?: string }) =>
         request<Product>("/admin/products", { method: "POST", body: payload, token }),
-      update: (token: string, id: string, payload: Partial<{ name: string; description: string | null; priceMzn: number; stock: number; categoryId: string | null; active: boolean; variants: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
+      update: (token: string, id: string, payload: Partial<ProductWritePayload>) =>
         request<Product>(`/admin/products/${id}`, { method: "PATCH", body: payload, token }),
       adjustStock: (token: string, id: string, delta: number) =>
         request<Product>(`/admin/products/${id}/stock`, { method: "POST", body: { delta }, token }),
@@ -206,7 +216,7 @@ export const api = {
         request<void>(`/admin/categories/${id}`, { method: "DELETE", token })
     },
     orders: {
-      list: (token: string, params: { status?: string; page?: number; limit?: number } = {}) =>
+      list: (token: string, params: { status?: string; bucket?: string; q?: string; page?: number; limit?: number } = {}) =>
         request<PaginatedResponse<Order>>(`/admin/orders${qs(params)}`, { token }),
       updateStatus: (token: string, id: string, status: string, reason?: string) =>
         request<Order>(`/admin/orders/${id}/status`, { method: "POST", body: { status, reason }, token }),

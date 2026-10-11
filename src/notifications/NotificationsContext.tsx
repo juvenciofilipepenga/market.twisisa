@@ -96,12 +96,19 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => { window.clearInterval(tick); document.removeEventListener("visibilitychange", onVisible); };
   }, [active, authLoading, refresh]);
 
+  // Otimista: a notificação passa a "lida" no ecrã NA HORA e o servidor confirma depois. Antes, abrir uma notificação
+  // esperava pela resposta do servidor (lento com a Vercel "a acordar") e só então mostrava o detalhe.
   const markRead = useCallback(async (id: string) => {
     if (!token) return;
+    const at = new Date().toISOString();
+    setItems((prev) => prev?.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: at } : n)) ?? null);
     try {
       const updated = await api.notifications.markRead(id, token);
       setItems((prev) => prev?.map((n) => (n.id === id ? updated : n)) ?? null);
-    } catch { /* falhou: fica por ler, o cliente pode tentar de novo */ }
+    } catch {
+      // Falhou: volta a "por ler" (o servidor não sabe que foi lida).
+      setItems((prev) => prev?.map((n) => (n.id === id && n.readAt === at ? { ...n, readAt: null } : n)) ?? null);
+    }
   }, [token]);
 
   const remove = useCallback(async (id: string) => {

@@ -7,6 +7,7 @@ import { ACCENTS, accentVars, useAdminAccent, type AdminAccent } from "@/lib/adm
 import { LanguageToggle } from "../layout/LanguageToggle";
 import { Modal } from "../ui/Modal";
 import { LayoutDashboardIcon, PackageNavIcon, TagsNavIcon, OrdersNavIcon, UsersNavIcon, ChatNavIcon, StoreNavIcon } from "./navIcons";
+import { ScrollToTop } from "../layout/ScrollToTop";
 import { LogOutIcon, GridIcon, DocumentIcon, WalletIcon } from "../icons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -73,6 +74,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-bg md:flex">
+      <ScrollToTop />
       {/* ===== Ecrã largo: barra lateral ===== */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface md:sticky md:top-0 md:flex md:h-screen">
         <div className="h-1 bg-primary" />

@@ -5,7 +5,7 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "ligh
 export type ButtonSize = "sm" | "md" | "lg" | "icon";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-primary text-white hover:bg-primary-hover active:bg-primary-active",
+  primary: "bg-primary text-white hover:bg-primary-hover active:bg-primary-active disabled:data-[loading=false]:border disabled:data-[loading=false]:border-border disabled:data-[loading=false]:bg-elevated disabled:data-[loading=false]:text-ink-muted disabled:data-[loading=false]:opacity-100",
   secondary: "border border-border bg-elevated text-ink hover:border-ink-faint",
   ghost: "bg-transparent text-ink-muted hover:bg-elevated hover:text-ink",
   danger: "border border-danger/30 bg-danger/10 text-danger hover:bg-danger/20",

@@ -48,3 +48,12 @@ export function nextStatusOptions(current: OrderStatus): OrderStatus[] {
     (targetFromSources[target] ?? []).includes(current)
   );
 }
+
+// Os mesmos 3 separadores do servidor (services/orderBuckets.ts).
+export const ORDER_BUCKETS: Record<"action" | "ongoing" | "done", OrderStatus[]> = {
+  action: ["PAYMENT_REVIEW", "PAID", "CANCELLATION_REQUESTED", "REFUND_PENDING"],
+  ongoing: ["PENDING_PAYMENT", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY"],
+  done: ["DELIVERED", "CANCELLED", "REFUNDED"]
+};
+export const bucketOf = (status: OrderStatus): "action" | "ongoing" | "done" =>
+  (Object.keys(ORDER_BUCKETS) as Array<"action" | "ongoing" | "done">).find((b) => ORDER_BUCKETS[b].includes(status)) ?? "done";

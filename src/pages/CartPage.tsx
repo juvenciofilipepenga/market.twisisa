@@ -125,6 +125,7 @@ export default function CartPage() {
                     <div className="flex items-start justify-between gap-2">
                       <Link to={`/produto/${item.productId}`} className="line-clamp-2 text-sm font-medium leading-snug">{item.name}</Link>
                       {(item.colorHex || item.size) && <div className="mt-1 flex items-center gap-2 text-xs text-ink-muted">{item.colorHex && <span className="h-4 w-4 rounded-full border border-border" style={{ backgroundColor: item.colorHex }} aria-label="Cor selecionada" />}{item.size && <span>Tamanho {item.size}</span>}</div>}
+                      {Object.entries(item.options ?? {}).filter(([name]) => !["cor", "tamanho"].includes(name.trim().toLowerCase())).length > 0 && <p className="mt-1 text-xs text-ink-muted">{Object.entries(item.options ?? {}).filter(([name]) => !["cor", "tamanho"].includes(name.trim().toLowerCase())).map(([name, value]) => `${name}: ${value}`).join(" · ")}</p>}
                       <button onClick={() => onRemove(item.productId, item.variantId)} aria-label={`${t("cart.remove")}: ${item.name}`} className="press -mr-1 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint hover:bg-danger/10 hover:text-danger">
                         <TrashIcon width={17} height={17} />
                       </button>

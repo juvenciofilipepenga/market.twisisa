@@ -41,6 +41,13 @@ export interface ProductVariant {
   productId: string;
   colorHex: string | null;
   size: string | null;
+  /** Opções da variante (ex.: { Cor: "#000000", Tamanho: "M" }). Variantes antigas recebem-nas a partir de cor/tamanho. */
+  options?: Record<string, string>;
+  sku?: string | null;
+  /** Preço próprio da variante; vazio = herda o do produto. */
+  priceMzn?: string | null;
+  /** Preço que o servidor cobra por esta variante (o da variante, ou o do produto). */
+  effectivePriceMzn?: string;
   stock: number;
   active: boolean;
   createdAt: string;
@@ -62,6 +69,12 @@ export interface Product {
   updatedAt: string;
   images: ProductImage[];
   variants: ProductVariant[];
+  /** Menor preço entre as variantes ativas (ou o do produto). */
+  priceFromMzn?: string;
+  /** Opções que o cliente pode escolher, deduzidas das variantes reais. */
+  optionDefs?: OptionDef[];
+  /** Características técnicas (só as públicas na loja). */
+  attributes?: ProductAttributeView[];
 }
 
 export interface PaginatedResponse<T> {
@@ -122,6 +135,9 @@ export interface OrderItem {
   variantId?: string | null;
   variantColorHex?: string | null;
   variantSize?: string | null;
+  /** Texto da variante no momento da compra, ex.: "Cor: #000000 · Capacidade: 256 GB". */
+  variantLabel?: string | null;
+  sku?: string | null;
   productName: string;
   unitPriceMzn: string;
   quantity: number;
@@ -152,6 +168,7 @@ export interface Payment {
   method: string | null;
   providerPaymentId: string | null;
   payerName?: string | null;
+  paidClaimedAt?: string | null;
   expiresAt?: string | null;
   failureCode?: string | null;
   failureMessage?: string | null;
@@ -395,3 +412,88 @@ export interface PendingReviewPayment {
   reference: string;
   claimedAt: string;
 }
+
+export interface ProductAttributeView {
+  id: string;
+  key: string;
+  name: string;
+  type: "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT" | "MEASURE";
+  unit: string | null;
+  options: unknown;
+  required: boolean;
+  showPublic: boolean;
+  filterable: boolean;
+  value: string | number | boolean | null;
+}
+
+export interface OptionDef { name: string; kind: "COLOR" | "TEXT"; values: string[] }
+
+export type AttributeType = "TEXT" | "NUMBER" | "BOOLEAN" | "SELECT" | "MEASURE";
+
+/** Característica técnica definida pelo admin para uma categoria (ex.: RAM, Material). */
+export interface CategoryAttribute {
+  id: string;
+  categoryId: string;
+  name: string;
+  key: string;
+  type: AttributeType;
+  required: boolean;
+  showPublic: boolean;
+  filterable: boolean;
+  unit: string | null;
+  options: string[];
+  sortOrder: number;
+}
+
+export interface CategoryAttributePayload {
+  name: string;
+  type: AttributeType;
+  required: boolean;
+  showPublic: boolean;
+  filterable: boolean;
+  unit?: string | null;
+  options?: string[];
+  sortOrder: number;
+}
+
+export interface VariantPayload {
+  options?: Record<string, string>;
+  colorHex?: string;
+  size?: string;
+  sku?: string | null;
+  /** Vazio/null = herda o preço do produto. */
+  priceMzn?: number | null;
+  stock: number;
+  active?: boolean;
+}
+
+export interface ProductWritePayload {
+  name: string;
+  description: string | null;
+  priceMzn: number;
+  stock: number;
+  categoryId: string | null;
+  active: boolean;
+  variants?: VariantPayload[];
+  attributes?: Array<{ attributeId: string; value: string | number | boolean | null }>;
+}
+
+// ── Painel admin: o que precisa de atenção e o histórico ───────────────────────────────────────────────────────────
+export interface AttentionOrder { id: string; orderNumber: string; customer: string; totalMzn: string; since: string }
+export interface AttentionToPrepare extends AttentionOrder {
+  items: Array<{ name: string; quantity: number }>;
+  itemCount: number;
+  method: string | null;
+  payerName: string | null;
+  payerNumber: string | null;
+}
+export interface AdminAttention {
+  counts: { paymentsToConfirm: number; toPrepare: number; cancelRequests: number; refunds: number; chats: number; lowStock: number; total: number };
+  toPrepare: AttentionToPrepare[];
+  cancelRequests: AttentionOrder[];
+  refunds: AttentionOrder[];
+  chats: Array<{ id: string; customer: string; since: string; preview: string | null }>;
+  lowStock: Array<{ id: string; name: string; stock: number }>;
+}
+export interface AdminHistoryItem { id: string; at: string; status: OrderStatus; note: string | null; orderId: string; orderNumber: string; totalMzn: string; customer: string }
+export type OrderBucket = "action" | "ongoing" | "done";

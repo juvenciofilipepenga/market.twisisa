@@ -25,6 +25,9 @@ export function adminError(err: unknown, t: (key: string) => string): string {
     if (message !== key) return message;
   }
   if (err instanceof ApiError && err.status === 403) return t("admin.err.FORBIDDEN");
+  // A Vercel recusa pedidos grandes antes de chegarem ao servidor (corpo sem JSON): 413 = foto demasiado grande.
+  if (err instanceof ApiError && err.status === 413) return t("admin.err.FILE_TOO_LARGE");
+  if (err instanceof ApiError && err.status >= 500) return t("admin.err.SERVER_DOWN");
   return t("common.error");
 }
 

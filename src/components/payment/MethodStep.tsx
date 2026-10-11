@@ -1,6 +1,7 @@
 import { useLocale } from "@/i18n/LocaleContext";
 import { formatMzn } from "@/lib/format";
 import { img } from "@/lib/images";
+import { shortOrder } from "@/lib/orderNumber";
 import { cleanPhone, METHOD_ORDER, PHONE_RULES } from "@/lib/payments";
 import type { ManualDetails, OnlineStatus, PaymentMethodId } from "@/lib/types";
 import { Button } from "../ui/Button";
@@ -65,7 +66,7 @@ export function MethodStep({ orderNumber, total, itemCount, available, onlineSta
       <section className="text-center">
         <p className="text-sm text-ink-muted">{t("pay.toPay")}</p>
         <p className="mt-1 font-display text-4xl font-extrabold tabular-nums">{formatMzn(total)}</p>
-        <p className="mt-1.5 text-xs text-ink-faint">{t("pay.order")} {orderNumber} · {itemCount} {itemCount === 1 ? "artigo" : "artigos"}</p>
+        <p className="mt-1.5 text-xs text-ink-faint">{t("pay.order")} {shortOrder(orderNumber)} · {itemCount} {itemCount === 1 ? "artigo" : "artigos"}</p>
       </section>
 
       {onlineDown && manualOptions.length > 0 && <p role="status" className="mt-5 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm text-warning">{t("pay.onlineDown")}</p>}

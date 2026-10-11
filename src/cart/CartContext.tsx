@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { Product, ProductVariant } from "../lib/types";
 import type { CartLine } from "../lib/cartPending";
+import { variantOptions } from "../lib/catalog";
 
 export interface CartItem {
   productId: string;
@@ -14,6 +15,8 @@ export interface CartItem {
   stock: number;
   /** Escolhido para pagar agora. Ausente (carrinhos antigos) = escolhido. */
   selected?: boolean;
+  /** Opções da variante além de cor/tamanho, para mostrar no carrinho (ex.: Capacidade: 256 GB). */
+  options?: Record<string, string> | null;
 }
 
 interface CartContextValue {
@@ -68,8 +71,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         return prev.map((i) => (i.productId === product.id && i.variantId === variantId ? { ...i, quantity: nextQty } : i));
       }
       return [...prev, {
-        productId: product.id, variantId, colorHex: variant?.colorHex ?? null, size: variant?.size ?? null,
-        name: product.name, priceMzn: product.priceMzn, quantity, imageUrl: primaryImage?.url ?? null, stock: variant?.stock ?? product.stock
+        productId: product.id, variantId, colorHex: variant?.colorHex ?? null, size: variant?.size ?? null, options: variant ? variantOptions(variant) : null,
+        name: product.name, priceMzn: variant?.effectivePriceMzn ?? product.priceMzn, quantity, imageUrl: primaryImage?.url ?? null, stock: variant?.stock ?? product.stock
       }];
     });
   }
