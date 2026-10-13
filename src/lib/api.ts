@@ -4,6 +4,7 @@ import type {
   Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
   PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
+import type { ImportRow } from "./productCsv";
 
 // Em desenvolvimento local cai para localhost:3000; em produção TEM de vir de
 // VITE_API_URL (definida na Vercel), apontando para o backend no Render/Railway/Fly.
@@ -209,8 +210,8 @@ export const api = {
       removeImage: (token: string, id: string, imageId: string) =>
         request<void>(`/admin/products/${id}/images/${imageId}`, { method: "DELETE", token }),
       remove: (token: string, id: string) => request<void>(`/admin/products/${id}`, { method: "DELETE", token }),
-      bulkCreate: (token: string, products: Array<{ name: string; description?: string; priceMzn?: number; pricing?: PricingInput; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
-        request<{ created: number; failed: Array<{ row: number; error: string }> }>(`/admin/products/bulk`, { method: "POST", body: { products }, token })
+      bulkCreate: (token: string, products: ImportRow[]) =>
+        request<{ created: number; failed: Array<{ row: number; error: string; detail?: string }>; createdAttributes?: string[] }>(`/admin/products/bulk`, { method: "POST", body: { products }, token })
     },
     categories: {
       create: (token: string, name: string) =>

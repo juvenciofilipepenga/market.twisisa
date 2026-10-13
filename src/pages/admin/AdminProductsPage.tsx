@@ -3,7 +3,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { useLocale } from "@/i18n/LocaleContext";
 import { api, ApiError } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
-import type { Category, PricingInput, Product } from "@/lib/types";
+import type { Category, Product } from "@/lib/types";
+import { CsvError, parseProductsCsv, templateCsv, type ImportRow } from "@/lib/productCsv";
 import { computePricing } from "@/lib/pricing";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -25,230 +26,33 @@ import {
 const PAGE_SIZE = 20;
 const LOW_STOCK = 5;
 
-type ImportRow = {
-  name: string;
-  description?: string;
-  // Ou o preço fixo (priceMzn), ou os custos (pricing) de onde o servidor calcula o preço.
-  priceMzn?: number;
-  pricing?: PricingInput;
-  stock: number;
-  categoryId?: string;
-  active: boolean;
-  variants?: Array<{
-    colorHex?: string;
-    size?: string;
-    stock: number;
-    active: boolean;
-  }>;
-};
+type ImportFailure = { row: number; error: string; detail?: string };
+type ImportResult = { created: number; failed: ImportFailure[]; createdAttributes: string[] };
 
-// Divide uma linha CSV respeitando aspas ("Cadeira, azul" é UMA coluna) e "" como aspa literal.
-function splitCsvLine(line: string): string[] {
-  const out: string[] = [];
-  let current = "";
-  let quoted = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (quoted) {
-      if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-      else if (ch === '"') quoted = false;
-      else current += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ",") { out.push(current.trim()); current = ""; }
-    else current += ch;
-  }
-  out.push(current.trim());
-  return out;
+// Texto claro para um erro de leitura do ficheiro, sempre com a linha onde está o problema (nunca "CSV_ROW_PRICE:2").
+function csvProblem(e: unknown, t: (key: string) => string): string {
+  if (!(e instanceof CsvError)) return t("admin.import.csv.CSV_INVALID");
+  const key = `admin.import.csv.${e.code}`;
+  const text = t(key);
+  const base = text === key ? t("admin.import.csv.CSV_INVALID") : text;
+  const detail = e.detail ? ` (${e.detail})` : "";
+  return e.line ? `${t("admin.import.line")} ${e.line}: ${base}${detail}` : `${base}${detail}`;
 }
 
-function parseCsv(text: string): ImportRow[] {
-  const lines = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-
-  if (lines.length < 2) {
-    throw new Error("CSV_EMPTY");
-  }
-
-  const firstLine = lines[0];
-
-  if (!firstLine) {
-    throw new Error("CSV_EMPTY");
-  }
-
-  const headers = splitCsvLine(firstLine);
-
-  const required = [
-    "name",
-    "stock"
-  ];
-
-  // Preço: coluna priceMzn (valor fixo) ou purchaseMzn (calculadora: o preço sai dos custos).
-  if (!headers.includes("priceMzn") && !headers.includes("purchaseMzn")) {
-    throw new Error("CSV_HEADERS:name,stock,priceMzn|purchaseMzn");
-  }
-
-  if (
-    required.some(
-      (key) => !headers.includes(key)
-    )
-  ) {
-    throw new Error(
-      `CSV_HEADERS:${required.join(",")}`
-    );
-  }
-
-  const rows: ImportRow[] = [];
-
-  for (
-    let index = 1;
-    index < lines.length;
-    index++
-  ) {
-    const line = lines[index];
-
-    if (!line) continue;
-
-    const values = splitCsvLine(line);
-
-    const row = Object.fromEntries(
-      headers.map((header, valueIndex) => [
-        header,
-        values[valueIndex] ?? ""
-      ])
-    ) as Record<string, string>;
-
-    const name = row.name?.trim() ?? "";
-
-    if (!name) {
-      throw new Error(
-        `CSV_ROW_NAME:${index + 1}`
-      );
-    }
-
-    // Com purchaseMzn a linha usa a calculadora: compra e retorno são obrigatórios, o resto vazio = 0.
-    const num = (key: string) => {
-      const raw = (row[key] ?? "").replace(",", ".").trim();
-      return raw === "" ? 0 : Number(raw);
-    };
-    const hasCosts = (row.purchaseMzn ?? "").trim() !== "";
-    const pricing: PricingInput | undefined = hasCosts
-      ? {
-          purchaseMzn: num("purchaseMzn"),
-          taxPct: num("taxPct"),
-          transportMzn: num("transportMzn"),
-          otherCostsMzn: num("otherCostsMzn"),
-          returnPct: (row.returnPct ?? "").trim() === "" ? Number.NaN : num("returnPct"),
-          commissionPct: num("commissionPct"),
-          discountPct: num("discountPct")
-        }
-      : undefined;
-    if (
-      pricing &&
-      !(
-        Object.values(pricing).every(Number.isFinite) &&
-        pricing.purchaseMzn > 0 &&
-        pricing.taxPct >= 0 && pricing.taxPct <= 100 &&
-        pricing.transportMzn >= 0 && pricing.otherCostsMzn >= 0 &&
-        pricing.returnPct >= 0 && pricing.returnPct <= 1000 &&
-        pricing.commissionPct >= 0 && pricing.commissionPct <= 60 &&
-        pricing.discountPct >= 0 && pricing.discountPct <= 50
-      )
-    ) {
-      throw new Error(`CSV_ROW_PRICE:${index + 1}`);
-    }
-
-    const priceMzn = Number(
-      row.priceMzn
-    );
-
-    const stock = Number(row.stock);
-
-    if (!Number.isInteger(stock)) {
-      throw new Error(`CSV_ROW_STOCK:${index + 1}`);
-    }
-
-    if (
-      !pricing &&
-      (!Number.isFinite(priceMzn) ||
-        priceMzn <= 0)
-    ) {
-      throw new Error(
-        `CSV_ROW_PRICE:${index + 1}`
-      );
-    }
-
-    if (
-      !Number.isFinite(stock) ||
-      stock < 0
-    ) {
-      throw new Error(
-        `CSV_ROW_STOCK:${index + 1}`
-      );
-    }
-
-    const hasVariant =
-      Boolean(row.colorHex?.trim()) ||
-      Boolean(row.size?.trim());
-
-    rows.push({
-      name,
-      description:
-        row.description?.trim() ||
-        undefined,
-      ...(pricing ? { pricing } : { priceMzn }),
-      stock,
-      categoryId:
-        row.categoryId?.trim() ||
-        undefined,
-      active:
-        row.active !== "false",
-      variants: hasVariant
-        ? [
-            {
-              colorHex:
-                row.colorHex?.trim() ||
-                undefined,
-              size:
-                row.size?.trim() ||
-                undefined,
-              stock: Number(
-                row.variantStock || row.stock
-              ),
-              active: true
-            }
-          ]
-        : undefined
-    });
-  }
-
-  return rows;
+// Uma linha que o servidor recusou: a linha do ficheiro e o motivo em palavras.
+function failureText(f: ImportFailure, t: (key: string) => string): string {
+  const key = `admin.import.err.${f.error}`;
+  const text = t(key);
+  const base = text === key ? t("admin.import.err.IMPORT_FAILED") : text;
+  return `${t("admin.import.line")} ${f.row}: ${base}${f.detail ? ` (${f.detail})` : ""}`;
 }
 
 function downloadTemplate() {
-  const csv =
-    // Duas formas de dar o preço: priceMzn (valor fixo) OU purchaseMzn + returnPct (o preço é calculado, como no formulário).
-    // Vazios nas colunas de custos valem 0. A comissão vai até 60% e o desconto até 50%.
-    "name,description,priceMzn,purchaseMzn,taxPct,transportMzn,otherCostsMzn,returnPct,commissionPct,discountPct,stock,categoryId,active,colorHex,size,variantStock\n" +
-    "Samsung A04 (preço calculado),Exemplo,,10000,16,400,,80,,,10,,true,#000000,,10\n" +
-    "Cabo USB (preço fixo),Exemplo,250,,,,,,,,50,,true,,,\n";
-
-  const a =
-    document.createElement("a");
-
-  a.href = URL.createObjectURL(
-    new Blob([csv], {
-      type: "text/csv;charset=utf-8"
-    })
-  );
-
-  a.download =
-    "twisisa-produtos-template.csv";
-
+  // O BOM faz o Excel abrir o ficheiro em UTF-8 (sem ele, "Memória" aparece estragado).
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + templateCsv()], { type: "text/csv;charset=utf-8" }));
+  a.download = "twisisa-produtos-template.csv";
   a.click();
-
   URL.revokeObjectURL(a.href);
 }
 
@@ -292,6 +96,9 @@ export default function AdminProductsPage() {
 
   const [importError, setImportError] =
     useState<string | null>(null);
+
+  const [importResult, setImportResult] =
+    useState<ImportResult | null>(null);
 
   const [savingImport, setSavingImport] =
     useState(false);
@@ -414,9 +221,10 @@ export default function AdminProductsPage() {
 
   async function onFile(file: File) {
     setImportError(null);
+    setImportResult(null);
 
     try {
-      const rows = parseCsv(
+      const rows = parseProductsCsv(
         await file.text()
       );
 
@@ -425,11 +233,7 @@ export default function AdminProductsPage() {
     } catch (e) {
       setImportRows(null);
 
-      setImportError(
-        e instanceof Error
-          ? e.message
-          : "CSV_INVALID"
-      );
+      setImportError(csvProblem(e, t));
     }
   }
 
@@ -447,22 +251,21 @@ export default function AdminProductsPage() {
           importRows
         );
 
-      if (r.failed.length) {
-        setImportError(
-          `${r.created} criados; ${r.failed.length} linhas rejeitadas.`
-        );
+      const createdAttributes = r.createdAttributes ?? [];
+
+      if (r.failed.length || createdAttributes.length) {
+        // Mostra o resultado: o que entrou, as características novas e, linha a linha, o que ficou de fora e porquê.
+        setImportResult({ created: r.created, failed: r.failed, createdAttributes });
+        setImportRows(null);
       } else {
         setImporting(false);
         setImportRows(null);
+        toast.show(`${r.created} ${t("admin.import.created")}`, { tone: "success", key: "product-import" });
       }
 
       await reload();
     } catch (e) {
-      setImportError(
-        e instanceof ApiError
-          ? e.code
-          : "IMPORT_FAILED"
-      );
+      setImportError(adminError(e, t));
     } finally {
       setSavingImport(false);
     }
@@ -670,59 +473,106 @@ export default function AdminProductsPage() {
         </Modal>
       )}
 
-      {importing && importRows && (
+      {importing && (importRows || importResult) && (
         <Modal
           title="Pré-visualização CSV"
-          onClose={() =>
-            !savingImport &&
-            setImporting(false)
-          }
+          onClose={() => {
+            if (savingImport) return;
+            setImporting(false);
+            setImportResult(null);
+          }}
         >
-          <p className="text-sm text-ink-muted">
-            {importRows.length} linhas prontas
-            para validação do servidor.
-          </p>
+          {importResult ? (
+            <>
+              <p className="text-sm text-ink-muted">
+                {importResult.created} {t("admin.import.created")}
+              </p>
 
-          <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-border">
-            {importRows
-              .slice(0, 50)
-              .map((row, index) => (
-                <div
-                  key={index}
-                  className="border-b border-border px-3 py-2 text-xs last:border-0"
+              {importResult.createdAttributes.length > 0 && (
+                <p className="mt-2 text-xs text-ink-muted">
+                  {t("admin.import.newAttrs")}: {importResult.createdAttributes.join(", ")}
+                </p>
+              )}
+
+              {importResult.failed.length > 0 && (
+                <>
+                  <p className="mt-3 text-sm font-semibold text-danger">
+                    {importResult.failed.length} {t("admin.import.failedTitle")}
+                  </p>
+                  <div className="mt-2 max-h-64 overflow-auto rounded-xl border border-border">
+                    {importResult.failed.map((failure, index) => (
+                      <div key={index} className="border-b border-border px-3 py-2 text-xs last:border-0">
+                        {failureText(failure, t)}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              <div className="mt-4 flex gap-2">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    setImporting(false);
+                    setImportResult(null);
+                  }}
                 >
-                  <strong>
-                    {index + 2}.
-                  </strong>{" "}
-                  {row.name} ·{" "}
-                  {row.pricing ? computePricing(row.pricing).customerPrice : row.priceMzn} MZN{row.pricing ? " (calculado)" : ""} · stock{" "}
-                  {row.stock}
+                  {t("admin.import.close")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            importRows && (
+              <>
+                <p className="text-sm text-ink-muted">
+                  {importRows.length} linhas prontas
+                  para validação do servidor.
+                </p>
+
+                <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-border">
+                  {importRows
+                    .slice(0, 50)
+                    .map((row, index) => (
+                      <div
+                        key={index}
+                        className="border-b border-border px-3 py-2 text-xs last:border-0"
+                      >
+                        <strong>
+                          {row.line}.
+                        </strong>{" "}
+                        {row.name} ·{" "}
+                        {row.pricing ? computePricing(row.pricing).customerPrice : row.priceMzn} MZN{row.pricing ? " (calculado)" : ""} · stock{" "}
+                        {row.stock}
+                        {row.attributes?.length ? ` · ${row.attributes.length} ${t("admin.import.attrs")}` : ""}
+                      </div>
+                    ))}
                 </div>
-              ))}
-          </div>
 
-          <div className="mt-4 flex gap-2">
-            <Button
-              variant="secondary"
-              className="flex-1"
-              onClick={() =>
-                setImporting(false)
-              }
-              disabled={savingImport}
-            >
-              Cancelar
-            </Button>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    variant="secondary"
+                    className="flex-1"
+                    onClick={() =>
+                      setImporting(false)
+                    }
+                    disabled={savingImport}
+                  >
+                    Cancelar
+                  </Button>
 
-            <Button
-              className="flex-1"
-              onClick={() =>
-                void runImport()
-              }
-              loading={savingImport}
-            >
-              Importar
-            </Button>
-          </div>
+                  <Button
+                    className="flex-1"
+                    onClick={() =>
+                      void runImport()
+                    }
+                    loading={savingImport}
+                  >
+                    Importar
+                  </Button>
+                </div>
+              </>
+            )
+          )}
         </Modal>
       )}
     </div>
