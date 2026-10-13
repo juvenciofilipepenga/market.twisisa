@@ -208,3 +208,55 @@ html, body { background-color: rgb(var(--c-bg)); color: rgb(var(--c-ink)); trans
 @media (min-width: 640px) { .chat-panel { height: min(680px, 88dvh); border-radius: 1rem; } }
 @media (max-width: 639px) { .chat-panel { height: min(82dvh, 760px); } .chat-composer { padding-bottom: max(.75rem, env(safe-area-inset-bottom, 0px)); } }
 :root[data-compact-motion="1"] .chat-panel, :root[data-compact-motion="1"] .chat-bubble, :root[data-compact-motion="1"] .chat-typing span { animation: none !important; }
+/* Etiqueta animada: borda luminosa em gradiente */
+.hero-new-badge {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+
+  background:
+    linear-gradient(#bd0000, #bd0000) padding-box,
+    conic-gradient(
+      from var(--hero-border-angle, 0deg),
+      #ffffff,
+      #ffcc70,
+      #ff2638,
+      #ffffff,
+      #ff9c45,
+      #ffffff
+    ) border-box;
+
+  box-shadow:
+    0 0 8px rgb(255 255 255 / 15%),
+    0 0 18px rgb(255 180 70 / 20%);
+
+  animation: hero-border-rotate 3s linear infinite;
+}
+
+/* Animação do gradiente */
+@property --hero-border-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes hero-border-rotate {
+  from {
+    --hero-border-angle: 0deg;
+  }
+
+  to {
+    --hero-border-angle: 360deg;
+  }
+}
+
+/* Respeitar utilizadores que preferem menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  .hero-new-badge {
+    animation: none;
+  }
+}
