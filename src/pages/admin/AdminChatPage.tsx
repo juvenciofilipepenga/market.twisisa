@@ -129,7 +129,8 @@ export default function AdminChatPage() {
                 {messages.map((m, index) => {
                   const date = new Date(m.createdAt);
                   const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                  const previous = index > 0 ? new Date(messages[index - 1].createdAt) : null;
+                  const previousMessage = index > 0 ? messages[index - 1] : undefined;
+                  const previous = previousMessage ? new Date(previousMessage.createdAt) : null;
                   const previousKey = previous ? `${previous.getFullYear()}-${previous.getMonth()}-${previous.getDate()}` : "";
                   const today = new Date(); today.setHours(0, 0, 0, 0);
                   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
