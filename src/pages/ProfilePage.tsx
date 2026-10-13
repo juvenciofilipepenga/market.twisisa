@@ -1,24 +1,39 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
-import { img } from "@/lib/images";
-import { detectLocation, type DetectedLocation } from "@/lib/geolocation";
 import { getLocalAvatar } from "@/lib/avatar";
-import { useCopy } from "@/lib/useCopy";
 import type { Me, ReferralInfo } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { ReferralCard } from "@/components/profile/ReferralCard";
 import { AvatarEditor } from "@/components/profile/AvatarEditor";
-import { ClipboardIcon, CheckIcon, LogOutIcon, PinIcon } from "@/components/icons";
+import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, SettingsIcon, UserIcon, CheckIcon, ShieldIcon } from "@/components/icons";
 
-const LOCATION_STORAGE_KEY = "twisisa.deliveryLocation";
+function MenuRow({ to, icon, title, detail, trailing }: { to: string; icon: ReactNode; title: string; detail?: string; trailing?: ReactNode }) {
+  return (
+    <Link to={to} className="profile-menu-row press group flex min-h-[70px] items-center gap-3 border-b border-border/80 px-1 py-3 last:border-b-0">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">{title}</span>
+        {detail && <span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">{detail}</span>}
+      </span>
+      {trailing}
+      <ChevronRightIcon width={18} height={18} className="shrink-0 text-ink-faint transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return <div className="profile-detail-row flex min-w-0 items-start justify-between gap-4 py-3.5">
+    <span className="shrink-0 text-sm text-ink-muted">{label}</span>
+    <span className="min-w-0 break-words text-right text-sm font-semibold">{value}</span>
+  </div>;
+}
 
 export default function ProfilePage() {
   const { t, locale } = useLocale();
@@ -31,40 +46,28 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [referral, setReferral] = useState<ReferralInfo | null>(null);
-  const [location, setLocation] = useState<DetectedLocation | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
-  const { copiedKey, copy } = useCopy();
-  const copied = copiedKey === "address";
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!token) return;
-    api.users.me(token).then((data) => { setMe(data); setName(data.name); setPhone(data.phone ?? ""); setPhoto(data.avatarUrl ?? getLocalAvatar()); }).catch(() => { /* 401 já é tratado globalmente */ });
+    api.users.me(token).then((data) => {
+      setMe(data); setName(data.name); setPhone(data.phone ?? ""); setPhoto(data.avatarUrl ?? getLocalAvatar(data.id));
+    }).catch(() => { /* 401 já é tratado globalmente */ });
     api.referrals.me(token).then(setReferral).catch(() => setReferral(null));
-    try {
-      const stored = window.localStorage.getItem(LOCATION_STORAGE_KEY);
-      if (stored) setLocation(JSON.parse(stored));
-    } catch { /* localização guardada inválida: ignora */ }
   }, [token]);
 
   async function saveProfile() {
-    if (!token) return;
+    if (!token || !name.trim()) return;
+    setSaving(true);
     try {
-      await api.users.updateMe(token, { name, phone: phone || null });
+      await api.users.updateMe(token, { name: name.trim(), phone: phone.trim() || null });
+      setMe((current) => current ? { ...current, name: name.trim(), phone: phone.trim() || null } : current);
+      setEditing(false);
       toast.show(t("toast.saved"), { key: "profile" });
     } catch {
       toast.show(t("common.error"), { tone: "error", key: "profile" });
-    }
-  }
-
-  async function useMyLocation() {
-    setLocationError(null);
-    try {
-      const result = await detectLocation();
-      setLocation(result);
-      try { window.localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(result)); } catch { /* sem armazenamento */ }
-    } catch {
-      setLocationError(t("profile.locationDenied"));
-    }
+    } finally { setSaving(false); }
   }
 
   function onLogout() {
@@ -73,65 +76,75 @@ export default function ProfilePage() {
     navigate("/", { replace: true });
   }
 
-  const since = me ? new Intl.DateTimeFormat(locale === "pt" ? "pt-PT" : "en-GB", { month: "long", year: "numeric" }).format(new Date(me.createdAt)) : null;
+  const since = me ? new Intl.DateTimeFormat(locale === "pt" ? "pt-PT" : "en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(me.createdAt)) : null;
+  const completed = referral?.completedReferrals ?? 0;
+  const invited = referral?.invitedReferrals ?? (completed + (referral?.pendingReferrals ?? 0));
 
   return (
-    <main className="pb-10">
+    <main className="pb-8">
       <Header />
-      <div className="mx-auto max-w-lg px-4 py-4">
-        {/* Capa + avatar (foto ou iniciais) com o botão de câmara */}
-        <section className="overflow-hidden rounded-2xl border border-border bg-surface">
-          <div className="h-28 bg-primary-active bg-cover bg-center sm:h-32" style={{ backgroundImage: `url(${img.profileCover})` }} />
-          <div className="px-5 pb-5">
-            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} onChange={setPhoto} />}
-            {me ? (
-              <div className="mt-3">
-                <h1 className="text-2xl font-extrabold leading-tight">{me.name}</h1>
-                <p className="text-sm text-ink-muted">{me.email}</p>
-                {since && <p className="mt-1 text-xs capitalize text-ink-faint">{t("profile.memberSince")} {since}</p>}
-              </div>
-            ) : <div className="mt-3 space-y-2"><Skeleton className="h-7 w-2/3" /><Skeleton className="h-4 w-1/2" /></div>}
+      <div className="profile-enter mx-auto max-w-xl px-5 py-5 sm:px-6 sm:py-7">
+        <div className="mb-5">
+          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary-text">TWISISA MARKET</p>
+          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">{t("profile.title")}</h1>
+          <p className="mt-1 text-sm text-ink-muted">A sua conta e informações pessoais.</p>
+        </div>
+
+        {/* Identidade simples: sem capa nem cartão promocional a ocupar o ecrã. */}
+        <section className="flex items-center gap-4 border-b border-border pb-5">
+          <div className="h-20 w-20 shrink-0 pt-10">
+            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[.12em] text-primary-text"><CheckIcon width={13} height={13} /> Cliente Twisisa</span>
+            <h2 className="mt-1 break-words font-display text-xl font-extrabold leading-tight">{me?.name ?? <Skeleton className="mt-1 h-6 w-36" />}</h2>
+            <p className="mt-1 break-all text-sm text-ink-muted">{me?.email ?? "A carregar conta…"}</p>
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-border bg-surface p-5">
-          <h2 className="mb-4 text-base font-bold">{t("profile.personal")}</h2>
-          {me === null ? (
-            <div className="space-y-3"><Skeleton className="h-12 w-full" /><Skeleton className="h-12 w-full" /></div>
-          ) : (
-            <div className="space-y-4">
+        <section className="mt-5">
+          <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Dados da conta</h2>
+          <div className="divide-y divide-border/80 rounded-xl border border-border bg-surface px-4">
+            <DetailRow label="Email" value={me?.email ?? "A carregar…"} />
+            <DetailRow label="Cliente desde" value={since ?? "—"} />
+            <div className="flex items-center justify-between gap-4 py-3.5">
+              <span className="text-sm text-ink-muted">Estado da conta</span>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold"><span className="h-2 w-2 rounded-full bg-success" />Ativa</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-5">
+          <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Acesso rápido</h2>
+          <div className="rounded-xl border border-border bg-surface px-4">
+            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Acompanhe entregas e consulte compras anteriores." />
+            <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Ver o seu convite.` : "Consulte o seu código e convide amigos."} />
+            <MenuRow to="/definicoes" icon={<SettingsIcon width={20} height={20} />} title="Definições" detail="Notificações e preferências da aplicação." />
+          </div>
+        </section>
+
+        <section className="mt-5 overflow-hidden rounded-xl border border-border bg-surface">
+          <button type="button" aria-expanded={editing} onClick={() => setEditing((value) => !value)} className="press flex min-h-[66px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-elevated">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-elevated text-ink-muted"><UserIcon width={20} height={20} /></span>
+            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Dados pessoais</span><span className="mt-0.5 block text-xs text-ink-muted">Nome e número de telefone</span></span>
+            <ChevronRightIcon width={19} height={19} className={`text-ink-faint transition-transform duration-200 ${editing ? "rotate-90" : ""}`} />
+          </button>
+          {editing && <div className="profile-expand border-t border-border px-4 py-4">
+            <div className="space-y-3">
               <Field label={t("auth.name")} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Field label={t("auth.email")} value={me.email} disabled readOnly />
+              <Field label={t("auth.email")} value={me?.email ?? ""} disabled readOnly />
               <Field label={t("auth.phone")} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <Button size="lg" className="w-full sm:w-auto" onClick={saveProfile} disabled={!name.trim()}>{t("common.save")}</Button>
+              <div className="flex gap-2 pt-1">
+                <Button variant="secondary" className="flex-1" onClick={() => { setName(me?.name ?? ""); setPhone(me?.phone ?? ""); setEditing(false); }}>Cancelar</Button>
+                <Button className="flex-1" onClick={saveProfile} disabled={!name.trim() || saving}>{saving ? "A guardar…" : t("common.save")}</Button>
+              </div>
             </div>
-          )}
+          </div>}
         </section>
 
-        <section className="mt-4 rounded-2xl border border-border bg-surface p-5">
-          <h2 className="text-base font-bold">{t("profile.locationTitle")}</h2>
-          <p className="mb-4 mt-1 text-sm text-ink-muted">{t("profile.locationHint")}</p>
-          <Button variant="secondary" onClick={useMyLocation}><PinIcon width={18} height={18} />{t("profile.useLocation")}</Button>
-          {locationError && <p role="alert" className="mt-3 text-sm text-danger">{locationError}</p>}
-          {location && (
-            <div className="mt-4 rounded-xl bg-elevated p-3">
-              <p className="text-sm">{location.address}</p>
-              <button onClick={() => void copy(location.address, "address")} className={`press mt-2 inline-flex h-10 items-center gap-1.5 rounded-lg px-2 text-xs font-semibold transition-colors ${copied ? "text-success" : "text-primary-text hover:text-ink"}`}>
-                {copied ? <CheckIcon className="pop" width={16} height={16} /> : <ClipboardIcon width={16} height={16} />}
-                {copied ? t("common.copied") : t("common.copy")}
-              </button>
-            </div>
-          )}
-        </section>
+        {isAdmin && <div className="mt-4"><Link to="/admin" className="press flex min-h-12 items-center gap-3 rounded-xl border border-primary/25 px-4 text-sm font-semibold text-primary-text transition-colors hover:bg-primary-soft"><ShieldIcon width={18} height={18} /><span className="flex-1">Área de administração</span><ChevronRightIcon width={18} height={18} /></Link></div>}
 
-        {referral && <div className="mt-4"><ReferralCard referral={referral} /></div>}
-
-        <section className="mt-4 grid gap-2 sm:grid-cols-2">
-          <Button variant="secondary" className="w-full" onClick={() => navigate("/definicoes")}>Definições</Button>
-          {isAdmin && <Button className="w-full" onClick={() => navigate("/admin")}>Área de administração</Button>}
-        </section>
-
-        <Button variant="ghost" size="lg" className="mt-4 w-full text-ink-muted" onClick={onLogout}><LogOutIcon width={18} height={18} />{t("profile.logout")}</Button>
+        <button type="button" onClick={onLogout} className="press mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"><LogOutIcon width={18} height={18} />{t("profile.logout")}</button>
       </div>
     </main>
   );

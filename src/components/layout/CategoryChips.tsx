@@ -1,8 +1,6 @@
-import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { api } from "@/lib/api";
+import { useCategories } from "@/lib/useCategories";
 import { useLocale } from "@/i18n/LocaleContext";
-import type { Category } from "@/lib/types";
 import { Skeleton } from "../ui/Skeleton";
 
 const chip = "shrink-0 rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors";
@@ -12,17 +10,15 @@ const chipOn = "border-ink bg-ink text-bg";
 
 // "Todas" funciona como estado por omissão (sem filtro) — não existe opção explícita
 // de "nenhuma categoria" à parte, conforme pedido.
-export function CategoryChips() {
+// `embedded`: dentro de outro bloco (ex.: "Encontre o que procura"), que já tem o seu próprio espaçamento.
+export function CategoryChips({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLocale();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const active = searchParams.get("categoryId");
   const search = searchParams.get("search") ?? undefined;
-  const [categories, setCategories] = useState<Category[] | null>(null);
-
-  useEffect(() => {
-    api.categories.list().then(setCategories).catch(() => setCategories([]));
-  }, []);
+  const categories = useCategories();
+  const rail = `no-scrollbar flex gap-2 overflow-x-auto ${embedded ? "" : "px-4 py-4"}`;
 
   function select(categoryId: string | null) {
     const params = new URLSearchParams();
@@ -33,14 +29,14 @@ export function CategoryChips() {
 
   if (categories === null) {
     return (
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-4">
+      <div className={rail}>
         {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-20 shrink-0 rounded-full" />)}
       </div>
     );
   }
 
   return (
-    <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 py-4">
+    <div className={rail}>
       <button onClick={() => select(null)} aria-pressed={!active} className={`${chip} ${!active ? chipOn : chipOff}`}>
         {t("categories.all")}
       </button>

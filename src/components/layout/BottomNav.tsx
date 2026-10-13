@@ -13,7 +13,7 @@ import { HomeIcon, SearchIcon, CartIcon, UserIcon, MoreIcon } from "../icons";
 // Esconde-se apenas enquanto se escreve num campo (o teclado já ocupa metade do ecrã).
 // Enquanto visível, marca <html data-bottom-nav>: o CSS reserva-lhe espaço (--nav-h) e os avisos/chat/barras fixas
 // de produto e carrinho sobem acima dela.
-const MORE_PATHS = ["/mais", "/definicoes", "/pedidos", "/instalar", "/termos", "/privacidade", "/cookies"];
+const MORE_PATHS = ["/mais", "/definicoes", "/pedidos", "/instalar", "/termos", "/privacidade", "/cookies", "/mapa-do-site"];
 const NON_TEXT_INPUTS = ["checkbox", "radio", "button", "submit", "range", "file", "color"];
 
 type Item = { to: string; label: string; Icon: ComponentType<SVGProps<SVGSVGElement>>; badge?: number; active: boolean; cartTarget?: boolean };

@@ -4,13 +4,14 @@ import { CookieNotice } from "./CookieNotice";
 import { BottomNav } from "./BottomNav";
 import { ScrollToTop } from "./ScrollToTop";
 import { PromoHost } from "../promo/PromoHost";
+import { WelcomeCard } from "../promo/WelcomeCard";
 
 // Páginas da loja: cada página desenha o seu Header; o rodapé, a barra inferior (telemóvel), o aviso de cookies e
 // as promoções vêm daqui. (pb-nav reserva espaço para a barra inferior quando ela está visível.)
 // A página nova entra com um fade curto (orienta a mudança), keyed no caminho.
 // O rodapé só aparece na página inicial e nas páginas legais. Em listas, pesquisa, produto, carrinho e conta ele surgia
 // no meio de quem estava a escolher; as ligações do rodapé estão em "Mais".
-const FOOTER_PATHS = new Set(["/", "/termos", "/privacidade", "/cookies"]);
+const FOOTER_PATHS = new Set(["/", "/termos", "/privacidade", "/cookies", "/mapa-do-site"]);
 
 export function PublicLayout() {
   const { pathname } = useLocation();
@@ -22,6 +23,7 @@ export function PublicLayout() {
       <BottomNav />
       <CookieNotice />
       <PromoHost />
+      <WelcomeCard />
     </div>
   );
 }

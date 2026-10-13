@@ -16,6 +16,13 @@ export function CookieNotice() {
     try { setVisible(window.localStorage.getItem(KEY) !== "ok"); } catch { setVisible(false); }
   }, []);
 
+  // Enquanto o aviso está visível marca <html data-cookie-notice>: o CSS esconde o botão do chat para não o tapar.
+  useEffect(() => {
+    const root = document.documentElement;
+    if (visible) root.setAttribute("data-cookie-notice", ""); else root.removeAttribute("data-cookie-notice");
+    return () => root.removeAttribute("data-cookie-notice");
+  }, [visible]);
+
   function accept() {
     try { window.localStorage.setItem(KEY, "ok"); } catch { /* sem armazenamento: só fecha */ }
     setVisible(false);

@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function restoreItem(item: CartItem, index?: number) {
     setItems((prev) => {
-      if (prev.some((i) => i.productId === item.productId)) return prev;
+      if (prev.some((i) => i.productId === item.productId && i.variantId === item.variantId)) return prev;
       const next = [...prev];
       next.splice(Math.min(index ?? next.length, next.length), 0, item);
       return next;

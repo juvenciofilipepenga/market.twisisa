@@ -1,7 +1,7 @@
 import type {
   CloudinarySignature,
   AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrderSummary,
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
   PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
 
@@ -111,8 +111,8 @@ export const api = {
   orders: {
     create: (items: Array<{ productId: string; variantId?: string; quantity: number }>, token: string) =>
       request<Order>("/orders", { method: "POST", body: { items }, token }),
-    list: (token: string, params: { page?: number; limit?: number; invoiced?: boolean } = {}) =>
-      request<PaginatedResponse<OrderSummary>>(`/orders${qs(params)}`, { token }),
+    list: (token: string, params: { page?: number; limit?: number; tab?: OrderTab } = {}) =>
+      request<OrdersListResponse>(`/orders${qs(params)}`, { token }),
     get: (id: string, token: string) => request<Order>(`/orders/${id}`, { token }),
     cancel: (id: string, reason: string, token: string) =>
       request<Order>(`/orders/${id}/cancel`, { method: "POST", body: { reason }, token })
@@ -126,7 +126,7 @@ export const api = {
     status: (id: string, token: string) => request<PaymentView>(`/payments/${id}/status`, { token }),
     cancel: (id: string, token: string) => request<PaymentView>(`/payments/${id}/cancel`, { method: "POST", token }),
     // Pagamento manual: "Já paguei". A partir daqui o pedido aparece ao admin. O código da mensagem é opcional.
-    claim: (id: string, payload: { transactionCode?: string }, token: string) =>
+    claim: (id: string, payload: { transactionCode?: string; proofUrl?: string }, token: string) =>
       request<PaymentView>(`/payments/${id}/claim`, { method: "POST", body: payload, token }),
     get: (id: string, token: string) => request<Payment>(`/payments/${id}`, { token }),
     submitProof: (id: string, proofUrl: string, token: string) =>
@@ -176,6 +176,11 @@ export const api = {
       const form = new FormData();
       form.append("file", file);
       return request<{ url: string; publicId: string }>("/media/image", { method: "POST", body: form, token, isForm: true });
+    },
+    uploadProof: (file: File, token: string) => {
+      const form = new FormData();
+      form.append("file", file);
+      return request<{ url: string; publicId: string; mimeType: string }>("/media/proof", { method: "POST", body: form, token, isForm: true });
     }
   },
   admin: {
@@ -204,7 +209,7 @@ export const api = {
       removeImage: (token: string, id: string, imageId: string) =>
         request<void>(`/admin/products/${id}/images/${imageId}`, { method: "DELETE", token }),
       remove: (token: string, id: string) => request<void>(`/admin/products/${id}`, { method: "DELETE", token }),
-      bulkCreate: (token: string, products: Array<{ name: string; description?: string; priceMzn: number; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
+      bulkCreate: (token: string, products: Array<{ name: string; description?: string; priceMzn?: number; pricing?: PricingInput; stock: number; categoryId?: string; active: boolean; variants?: Array<{ colorHex?: string; size?: string; stock: number; active?: boolean }> }>) =>
         request<{ created: number; failed: Array<{ row: number; error: string }> }>(`/admin/products/bulk`, { method: "POST", body: { products }, token })
     },
     categories: {
@@ -228,6 +233,10 @@ export const api = {
       update: (token: string, payload: Omit<PaymentSettings, "onlineStatus" | "zpFailures" | "zpDegradedUntil">) =>
         request<PaymentSettings>("/admin/payment-settings", { method: "PUT", body: payload, token }),
       resetBreaker: (token: string) => request<PaymentSettings>("/admin/payment-settings/reset-degraded", { method: "POST", token })
+    },
+    pricingSettings: {
+      get: (token: string) => request<PricingThresholds>("/admin/pricing-settings", { token }),
+      update: (token: string, payload: PricingThresholds) => request<PricingThresholds>("/admin/pricing-settings", { method: "PUT", body: payload, token })
     },
     invoiceSettings: {
       get: (token: string) => request<InvoiceSettings>("/admin/invoice-settings", { token }),

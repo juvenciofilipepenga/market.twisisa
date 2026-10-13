@@ -2,27 +2,12 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useLocale } from "@/i18n/LocaleContext";
 import { useAuth } from "@/auth/AuthContext";
-import { PROMOS, type Promo } from "@/config/promos";
+import { PROMOS } from "@/config/promos";
+import type { Promo } from "@/config/promos";
+import { markSeen, PROMO_SESSION_KEY, recentlySeen } from "@/lib/promoSeen";
 import { Modal } from "../ui/Modal";
 import { Button } from "../ui/Button";
 import { SpeedLines } from "../brand/SpeedLines";
-
-const SESSION_KEY = "twisisa.promo.session";
-const seenKey = (id: string) => `twisisa.promo.${id}`;
-
-function recentlySeen(p: Promo): boolean {
-  try {
-    const at = Number(window.localStorage.getItem(seenKey(p.id)) ?? 0);
-    return at > 0 && Date.now() - at < p.cooldownHours * 3_600_000;
-  } catch { return false; }
-}
-
-function markSeen(p: Promo) {
-  try {
-    window.localStorage.setItem(seenKey(p.id), String(Date.now()));
-    window.sessionStorage.setItem(SESSION_KEY, "1");
-  } catch { /* sem armazenamento: pode repetir, mas nunca parte a página */ }
-}
 
 // Decide se e quando mostrar UMA promoção. Nunca interrompe: só nas rotas do config, no máximo uma por
 // sessão, respeitando o intervalo de cada campanha, e nunca por cima de outro diálogo aberto.
@@ -35,10 +20,10 @@ export function PromoHost() {
 
   useEffect(() => {
     setPromo(null);
-    try { if (window.sessionStorage.getItem(SESSION_KEY)) return; } catch { /* segue */ }
+    try { if (window.sessionStorage.getItem(PROMO_SESSION_KEY)) return; } catch { /* segue */ }
 
     const chosen = PROMOS.find((p) =>
-      p.enabled && p.routes.includes(pathname) && !recentlySeen(p) &&
+      p.enabled && !p.nudge && p.routes.includes(pathname) && !recentlySeen(p) &&
       (p.audience === "all" || (p.audience === "guest" && !token) || (p.audience === "user" && Boolean(token)))
     );
     if (!chosen) return;
@@ -47,7 +32,7 @@ export function PromoHost() {
     const open = () => {
       if (opened || document.querySelector('[role="dialog"]')) return;
       opened = true;
-      markSeen(chosen);
+      markSeen(chosen, true);
       setPromo(chosen);
     };
     const timer = window.setTimeout(open, chosen.delayMs);

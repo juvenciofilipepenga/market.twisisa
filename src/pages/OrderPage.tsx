@@ -19,6 +19,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { OrderTimeline } from "@/components/order/OrderTimeline";
 import { OrderBanner } from "@/components/order/OrderBanner";
+import { ArrivalCard } from "@/components/order/ArrivalCard";
+import { useCountdown } from "@/lib/useCountdown";
+import { formatCountdown } from "@/lib/payments";
 import { ChevronLeftIcon } from "@/components/icons";
 
 // Mesma lista de estados canceláveis que o backend usa em src/routes/orders.ts (const
@@ -74,6 +77,10 @@ export default function OrderPage() {
     : undefined;
 
   const ready = order && order !== "not-found" ? order : null;
+  // Prazo de pagamento (vem do servidor): enquanto corre mostra o tempo que resta; ao chegar a zero esconde o botão de pagar.
+  const payLeft = useCountdown(ready?.status === "PENDING_PAYMENT" ? ready.paymentDeadline : null, ready?.serverNow);
+  const expired = ready?.status === "CANCELLED" && ready.cancellationReason === "PAYMENT_EXPIRED";
+  const inDelivery = ready ? ["PAID", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY"].includes(ready.status) : false;
 
   return (
     <main className="pb-10">
@@ -102,22 +109,28 @@ export default function OrderPage() {
               <OrderStatusBadge status={ready.status} />
             </div>
 
+            {inDelivery && <ArrivalCard estimatedAt={ready.estimatedDeliveryAt} deadlineAt={ready.deliveryDeadlineAt} />}
+
+            {expired && (
+              <div className="rounded-2xl border border-danger/30 bg-danger/5 p-4">
+                <h2 className="text-base font-bold">{t("order.expired.title")}</h2>
+                <p className="mt-1 text-sm text-ink-muted">{t("order.expired.body")}</p>
+              </div>
+            )}
+
             <div className="rounded-2xl border border-border bg-surface px-3 py-5 sm:px-5">
               <OrderTimeline status={ready.status} />
             </div>
 
             {["PAID", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"].includes(ready.status) && (() => {
               const last = [...(ready.statusHistory ?? [])].reverse().find((h) => h.location);
-              const eta = ready.estimatedDeliveryAt ? new Date(ready.estimatedDeliveryAt).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long" }) : null;
-              const delivered = ready.status === "DELIVERED";
               return (
                 <div className="rounded-2xl border border-border bg-surface p-4">
                   <h2 className="mb-3 text-sm font-bold">{t("order.track.title")}</h2>
-                  {!eta && !last && !ready.trackingCode && !ready.carrier ? (
+                  {!last && !ready.trackingCode && !ready.carrier ? (
                     <p className="text-sm text-ink-muted">{t("order.track.noInfo")}</p>
                   ) : (
                     <dl className="space-y-2.5 text-sm">
-                      {eta && !delivered && <div className="flex justify-between gap-3"><dt className="text-ink-muted">{t("order.track.eta")}</dt><dd className="text-right font-semibold capitalize">{eta}</dd></div>}
                       {last && (
                         <div className="flex justify-between gap-3">
                           <dt className="text-ink-muted">{t("order.track.where")}</dt>
@@ -164,7 +177,14 @@ export default function OrderPage() {
                   </div>
                   <img src={img.mascotPayment} alt="" width={900} height={952} loading="lazy" className="h-14 w-auto shrink-0 object-contain" />
                 </div>
-                <Link to={`/pagamento/${ready.id}`} className={buttonClass("primary", "lg", "mt-3 w-full")}>{t(ready.status === "PAYMENT_REVIEW" ? "pay.review.view" : activePayment ? "pay.pending.resume" : "pay.pending.cta")}</Link>
+                {ready.status === "PENDING_PAYMENT" && payLeft !== null && (
+                  <p className={`mt-2 text-sm font-semibold tabular-nums ${payLeft < 5 * 60_000 ? "text-danger" : "text-warning"}`}>
+                    {payLeft > 0 ? `${t("orders.payIn")} ${formatCountdown(payLeft)}` : t("orders.phase.paymentClosed")}
+                  </p>
+                )}
+                {!(ready.status === "PENDING_PAYMENT" && payLeft !== null && payLeft <= 0) && (
+                  <Link to={`/pagamento/${ready.id}`} className={buttonClass("primary", "lg", "mt-3 w-full")}>{t(ready.status === "PAYMENT_REVIEW" ? "pay.review.view" : activePayment ? "pay.pending.resume" : "pay.pending.cta")}</Link>
+                )}
               </div>
             )}
 

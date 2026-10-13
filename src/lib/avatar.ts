@@ -1,12 +1,18 @@
 import { api, ApiError } from "./api";
 
-const LOCAL_KEY = "twisisa.avatar";
+// A foto local fica POR CONTA: antes havia uma chave única e quem entrasse a seguir no mesmo aparelho via a foto do anterior.
+const LEGACY_KEY = "twisisa.avatar"; // chave antiga, sem dono: apagada assim que se lê
+const localKey = (userId: string) => `twisisa.avatar.${userId}`;
 
-export function getLocalAvatar(): string | null {
-  try { return window.localStorage.getItem(LOCAL_KEY); } catch { return null; }
+export function getLocalAvatar(userId: string | null | undefined): string | null {
+  try {
+    window.localStorage.removeItem(LEGACY_KEY);
+    return userId ? window.localStorage.getItem(localKey(userId)) : null;
+  } catch { return null; }
 }
-function setLocalAvatar(dataUrl: string | null) {
-  try { if (dataUrl) window.localStorage.setItem(LOCAL_KEY, dataUrl); else window.localStorage.removeItem(LOCAL_KEY); } catch { /* sem armazenamento */ }
+function setLocalAvatar(userId: string, dataUrl: string | null) {
+  if (!userId) return;
+  try { if (dataUrl) window.localStorage.setItem(localKey(userId), dataUrl); else window.localStorage.removeItem(localKey(userId)); } catch { /* sem armazenamento */ }
 }
 
 /** Pede ao Cloudinary já o tamanho certo (2x para ecrãs densos), rosto centrado, formato e qualidade automáticos. */
@@ -32,14 +38,14 @@ export interface SavedAvatar { url: string; where: "cloud" | "device" }
 // Fluxo final: o backend assina (POST /uploads/sign), o browser envia a imagem ao Cloudinary, e o URL fica no utilizador
 // (PATCH /users/me { avatarUrl }). Enquanto o backend ainda não tem estes endpoints (404/405/501), a foto fica só neste
 // aparelho: o cliente vê o resultado e nada quebra. Qualquer outro erro sobe para quem chamou mostrar o aviso.
-export async function saveAvatar(blob: Blob, token: string): Promise<SavedAvatar> {
+export async function saveAvatar(blob: Blob, token: string, userId: string): Promise<SavedAvatar> {
   let sig;
   try {
     sig = await api.uploads.sign(token, "avatars");
   } catch (err) {
     if (err instanceof ApiError && [404, 405, 501].includes(err.status)) {
       const url = await blobToDataUrl(blob);
-      setLocalAvatar(url);
+      setLocalAvatar(userId, url);
       return { url, where: "device" };
     }
     throw err;
@@ -57,12 +63,12 @@ export async function saveAvatar(blob: Blob, token: string): Promise<SavedAvatar
   if (!res.ok) throw new Error(`cloudinary ${res.status}`);
   const data = (await res.json()) as { secure_url: string };
   await api.users.updateMe(token, { avatarUrl: data.secure_url });
-  setLocalAvatar(null);
+  setLocalAvatar(userId, null);
   return { url: data.secure_url, where: "cloud" };
 }
 
-export async function removeAvatar(token: string): Promise<void> {
-  setLocalAvatar(null);
+export async function removeAvatar(token: string, userId: string): Promise<void> {
+  setLocalAvatar(userId, null);
   try {
     await api.users.updateMe(token, { avatarUrl: null });
   } catch (err) {

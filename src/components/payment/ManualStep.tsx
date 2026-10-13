@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/i18n/LocaleContext";
 import { formatCountdown } from "@/lib/payments";
 import type { PaymentMethodId, PaymentView } from "@/lib/types";
 import { Button } from "../ui/Button";
 import { Field } from "../ui/Field";
 import { Modal } from "../ui/Modal";
-import { CheckIcon } from "../icons";
+import { CameraIcon, CheckIcon, DocumentIcon } from "../icons";
 import { NAME } from "./MethodStep";
 import { spaced, StoreCard } from "./StoreCard";
 
@@ -13,13 +13,23 @@ import { spaced, StoreCard } from "./StoreCard";
 // Se o tempo acabar, o botão continua disponível (tolerância no servidor) para quem pagou no último minuto.
 export function ManualStep({ payment, store, windowSeconds, busy, error, onClaim, onRestart, onChangeMethod }: {
   payment: PaymentView; store: { number: string; name: string | null }; windowSeconds: number; busy: boolean; error: string | null;
-  onClaim: (code: string) => unknown; onRestart: () => void; onChangeMethod: () => unknown;
+  onClaim: (code: string, proof?: File) => unknown; onRestart: () => void; onChangeMethod: () => unknown;
 }) {
   const { t } = useLocale();
   const method: PaymentMethodId = payment.method === "EMOLA" ? "EMOLA" : "MPESA";
   const [now, setNow] = useState(() => Date.now());
   const [confirming, setConfirming] = useState(false);
   const [code, setCode] = useState("");
+  const [proof, setProof] = useState<File | null>(null);
+  const [proofNote, setProofNote] = useState<string | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const pdfInput = useRef<HTMLInputElement>(null);
+  function pickProof(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { setProofNote(t("pay.proof.tooBig")); return; }
+    setProofNote(null);
+    setProof(file);
+  }
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -64,6 +74,26 @@ export function ManualStep({ payment, store, windowSeconds, busy, error, onClaim
         </div>
       </details>
 
+      <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
+        <p className="text-sm font-semibold">{t("pay.proof.title")} <span className="font-normal text-ink-muted">{t("pay.proof.optional")}</span></p>
+        <p className="mt-1 text-xs text-ink-muted">{t("pay.proof.hint")}</p>
+        {proof ? (
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-elevated px-3 py-2.5">
+            {proof.type === "application/pdf" ? <DocumentIcon width={18} height={18} /> : <CameraIcon width={18} height={18} />}
+            <span className="min-w-0 flex-1 truncate text-sm">{proof.name}</span>
+            <button type="button" onClick={() => setProof(null)} className="press shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-ink-muted hover:text-ink">{t("pay.proof.remove")}</button>
+          </div>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => photoInput.current?.click()} className="press flex h-11 items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold hover:border-ink-faint"><CameraIcon width={18} height={18} />{t("pay.proof.photo")}</button>
+            <button type="button" onClick={() => pdfInput.current?.click()} className="press flex h-11 items-center justify-center gap-2 rounded-xl border border-border text-sm font-semibold hover:border-ink-faint"><DocumentIcon width={18} height={18} />{t("pay.proof.pdf")}</button>
+          </div>
+        )}
+        {proofNote && <p role="alert" className="mt-2 text-xs text-danger">{proofNote}</p>}
+        <input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label={t("pay.proof.photo")} onChange={(e) => { pickProof(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={pdfInput} type="file" accept="application/pdf" className="sr-only" tabIndex={-1} aria-label={t("pay.proof.pdf")} onChange={(e) => { pickProof(e.target.files?.[0]); e.target.value = ""; }} />
+      </div>
+
       {error && <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>}
 
       <div className="mt-5 space-y-2">
@@ -79,7 +109,7 @@ export function ManualStep({ payment, store, windowSeconds, busy, error, onClaim
             <p className="mt-2 text-sm text-ink-muted">{t("pay.manual.claimBody")}</p>
             <p className="mt-3 rounded-xl bg-elevated px-3 py-2 text-sm font-semibold">{NAME[method]} · {spaced(store.number)}</p>
             <div className="mt-5 space-y-2">
-              <Button size="lg" className="w-full" loading={busy} onClick={async () => { await onClaim(code); setConfirming(false); }}>{t("pay.manual.claimYes")}</Button>
+              <Button size="lg" className="w-full" loading={busy} onClick={async () => { await onClaim(code, proof ?? undefined); setConfirming(false); }}>{t("pay.manual.claimYes")}</Button>
               <Button size="lg" variant="secondary" className="w-full" onClick={() => setConfirming(false)}>{t("pay.manual.claimNo")}</Button>
             </div>
           </div>

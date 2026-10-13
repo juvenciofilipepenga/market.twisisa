@@ -75,7 +75,14 @@ export interface Product {
   optionDefs?: OptionDef[];
   /** Características técnicas (só as públicas na loja). */
   attributes?: ProductAttributeView[];
+  /** Custos e margens: só vêm nas respostas do admin. Sem isto o produto tem preço antigo, sem custos. */
+  pricing?: ProductPricing | null;
 }
+
+// Calculadora de preço (só admin): o preço é calculado a partir daqui no servidor. Decimais chegam como texto.
+export interface ProductPricing { purchaseMzn: string; taxPct: string; transportMzn: string; otherCostsMzn: string; returnPct: string; commissionPct: string; discountPct: string }
+export interface PricingInput { purchaseMzn: number; taxPct: number; transportMzn: number; otherCostsMzn: number; returnPct: number; commissionPct: number; discountPct: number }
+export interface PricingThresholds { goodFromPct: number; excellentFromPct: number }
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -217,6 +224,10 @@ export interface Order {
   carrier?: string | null;
   invoice?: Invoice | null;
   user?: { id: string; name: string; email: string } | null;
+  /** Fim do prazo de pagamento (só enquanto aguarda pagamento) e prazo máximo de entrega (só depois de confirmado): calculados no servidor. */
+  paymentDeadline?: string | null;
+  deliveryDeadlineAt?: string | null;
+  serverNow?: string;
 }
 
 export interface AppNotification {
@@ -310,6 +321,18 @@ export interface OrderSummary {
   invoice: { id: string; invoiceNumber: string } | null;
   items: Array<{ productName: string; quantity: number }>;
   _count: { items: number };
+  /** Em que separador cai: carteira (pago e confirmado), P2P (em espera/expirada), recusada, ou nenhum (ex.: cancelada pelo cliente). */
+  phase: OrderPhase;
+  expired: boolean;
+  paymentDeadline: string | null;
+}
+
+export type OrderPhase = "wallet" | "p2p" | "refused" | "other";
+export type OrderTab = "all" | "wallet" | "p2p" | "refused";
+
+export interface OrdersListResponse extends PaginatedResponse<OrderSummary> {
+  counts: Record<OrderTab, number>;
+  serverNow: string;
 }
 
 export type PaymentFailureKind = "MANUAL_EXPIRED" | "PROOF_REJECTED" | "WRONG_PIN" | "INSUFFICIENT_FUNDS" | "CANCELLED" | "TIMEOUT" | "AMOUNT_MISMATCH" | "UNAVAILABLE" | "UNKNOWN";
@@ -470,7 +493,9 @@ export interface VariantPayload {
 export interface ProductWritePayload {
   name: string;
   description: string | null;
-  priceMzn: number;
+  /** Só para produtos sem custos (preço antigo). Com `pricing` o servidor calcula o preço e ignora este valor. */
+  priceMzn?: number;
+  pricing?: PricingInput;
   stock: number;
   categoryId: string | null;
   active: boolean;

@@ -6,7 +6,7 @@ import { Skeleton } from "../ui/Skeleton";
 // Fila "Destaques": os produtos que o slider do topo não mostra (mesma fonte, ver lib/useFeaturedProducts.ts).
 export function FeaturedSection() {
   const { t } = useLocale();
-  const { ready, more } = useFeaturedProducts();
+  const { ready, hero: more } = useFeaturedProducts();
 
   if (ready && more.length === 0) return null;
 

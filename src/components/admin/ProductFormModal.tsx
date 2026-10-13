@@ -3,6 +3,7 @@ import { api } from "@/lib/api";
 import { adminError } from "@/lib/errors";
 import { compressImage } from "@/lib/image";
 import { formatMzn } from "@/lib/format";
+import { computePricing, draftFromPricing, toPricingInput, type PricingDraft } from "@/lib/pricing";
 import { useAuth } from "@/auth/AuthContext";
 import { useLocale } from "@/i18n/LocaleContext";
 import type { Category, CategoryAttribute, Product, VariantPayload } from "@/lib/types";
@@ -11,6 +12,7 @@ import { Button } from "../ui/Button";
 import { TrashIcon, PlusIcon, BoxIcon } from "../icons";
 import { AttributesEditor } from "./product/AttributesEditor";
 import { VariantsEditor } from "./product/VariantsEditor";
+import { PricingCalculator } from "./product/PricingCalculator";
 import { Section, inputCls, Labeled, Switch } from "./product/Section";
 import { FormIssue, makeDraft, namesFromVariants, validateVariants, type DraftVariant } from "./product/draft";
 
@@ -38,7 +40,9 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
   // 1. Informações gerais · 4. Preço e inventário · 7. Publicação
   const [name, setName] = useState(product?.name ?? "");
   const [description, setDescription] = useState(product?.description ?? "");
-  const [priceMzn, setPriceMzn] = useState(product?.priceMzn ?? "");
+  // O preço já não se escreve: calcula-se a partir dos custos (servidor decide). Produto antigo sem custos mantém o preço até serem preenchidos.
+  const [pricing, setPricing] = useState<PricingDraft>(() => draftFromPricing(product?.pricing));
+  const legacyPrice = product && !product.pricing ? product.priceMzn : null;
   const [stock, setStock] = useState(String(product?.variants?.some((v) => v.active) ? 0 : product?.stock ?? 0));
   const [active, setActive] = useState(product?.active ?? true);
   // 2. Categoria e 5. Características
@@ -102,9 +106,10 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
 
     try {
       const existing = product ?? createdRef.current;
-      const price = Number(priceMzn);
       if (!name.trim()) throw new FormIssue(t("admin.err.INVALID_NAME"));
-      if (!(price > 0)) throw new FormIssue(t("admin.err.PRICE_INVALID"));
+      const pricingInput = toPricingInput(pricing);
+      const keepLegacyPrice = !pricingInput && !pricing.purchase.trim() && !pricing.returnPct.trim() && (existing?.pricing ? null : (existing?.priceMzn ?? null));
+      if (!pricingInput && !keepLegacyPrice) throw new FormIssue("Preencha a compra e o retorno desejado com valores válidos (comissão até 60%, desconto até 50%).");
 
       // Características obrigatórias (o servidor também verifica, aqui diz-se QUAL falta).
       const missing = new Set((defs ?? []).filter((d) => d.required && !(attrValues[d.id] ?? "").trim()).map((d) => d.id));
@@ -136,7 +141,7 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
       const payload = {
         name: name.trim(),
         description: existing ? description.trim() || null : description.trim() || undefined,
-        priceMzn: price,
+        ...(pricingInput ? { pricing: pricingInput } : { priceMzn: Number(keepLegacyPrice) }),
         stock: hasVariants ? 0 : Number(stock),
         categoryId: existing ? categoryId || null : categoryId || undefined,
         active,
@@ -215,6 +220,8 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
   }
 
   const categoryName = categories.find((c) => c.id === categoryId)?.name;
+  const calc = toPricingInput(pricing);
+  const summaryPrice = calc ? computePricing(calc).customerPrice : legacyPrice ? Number(legacyPrice) : null;
 
   return (
     <Modal title={product ? t("common.edit") : t("admin.products.new")} onClose={onClose} size="lg">
@@ -259,14 +266,10 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
         </Section>
 
         <Section n={4} title="Preço e inventário">
-          <div className="grid grid-cols-2 gap-3">
-            <Labeled label="Preço base (MZN)" required hint={hasVariants ? "As variantes usam este preço, a menos que tenham o seu." : undefined}>
-              <input required type="number" inputMode="decimal" min={0} step="0.01" value={priceMzn} onChange={(e) => setPriceMzn(e.target.value)} className={inputCls} />
-            </Labeled>
-            <Labeled label="Stock" hint={hasVariants ? "Soma das variantes." : undefined}>
-              <input type="number" inputMode="numeric" min={0} required={!hasVariants} disabled={hasVariants} value={hasVariants ? variantTotal : stock} onChange={(e) => setStock(e.target.value)} className={`${inputCls} disabled:opacity-60`} />
-            </Labeled>
-          </div>
+          <PricingCalculator draft={pricing} onChange={setPricing} legacyPrice={legacyPrice} hasVariants={hasVariants} />
+          <Labeled label="Stock" hint={hasVariants ? "Soma das variantes." : undefined}>
+            <input type="number" inputMode="numeric" min={0} required={!hasVariants} disabled={hasVariants} value={hasVariants ? variantTotal : stock} onChange={(e) => setStock(e.target.value)} className={`${inputCls} disabled:opacity-60`} />
+          </Labeled>
         </Section>
 
         <Section n={5} title="Características técnicas" hint={categoryName ? `Pedidas pela categoria «${categoryName}».` : undefined}>
@@ -292,7 +295,7 @@ export function ProductFormModal({ product, categories, onClose, onSaved }: Prop
         <div className="rounded-xl bg-elevated px-3 py-3 text-xs text-ink-muted">
           <p className="mb-1 font-semibold text-ink">Vai guardar</p>
           <p>
-            {name.trim() || "Produto sem nome"} · {Number(priceMzn) > 0 ? formatMzn(Number(priceMzn)) : "sem preço"} · {categoryName ?? "sem categoria"} · {hasVariants ? `${drafts.length} variantes, ${variantTotal} em stock` : `${Number(stock) || 0} em stock`} · {filledAttrs} características · {images.length + pendingFiles.length} imagens · {active ? "visível" : "oculto"}
+            {name.trim() || "Produto sem nome"} · {summaryPrice !== null ? formatMzn(summaryPrice) : "sem preço"} · {categoryName ?? "sem categoria"} · {hasVariants ? `${drafts.length} variantes, ${variantTotal} em stock` : `${Number(stock) || 0} em stock`} · {filledAttrs} características · {images.length + pendingFiles.length} imagens · {active ? "visível" : "oculto"}
           </p>
         </div>
 

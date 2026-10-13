@@ -31,12 +31,15 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick">
   /** Se devolver uma Promise, o botão mostra o spinner e fica bloqueado até ela terminar. */
   onClick?: (e: MouseEvent<HTMLButtonElement>) => unknown;
   children: ReactNode;
+  /** Ícone opcional alinhado ao texto, para acções mais fáceis de reconhecer. */
+  icon?: ReactNode;
+  iconPosition?: "start" | "end";
 }
 
 // Regra do projecto: todo o botão que dispara algo que pode demorar mostra spinner. Aqui isso é
 // automático: basta passar uma função async ao onClick (ou `loading` num submit). O texto mantém
 // o espaço (invisible), por isso o botão não muda de largura nem "salta".
-export function Button({ variant = "primary", size = "md", loading = false, onClick, disabled, className = "", children, type = "button", ...rest }: Props) {
+export function Button({ variant = "primary", size = "md", loading = false, onClick, disabled, className = "", children, icon, iconPosition = "start", type = "button", ...rest }: Props) {
   const [busy, setBusy] = useState(false);
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -62,7 +65,7 @@ export function Button({ variant = "primary", size = "md", loading = false, onCl
       onClick={handleClick}
       {...rest}
     >
-      <span className={`inline-flex items-center justify-center gap-2 ${isLoading ? "invisible" : ""}`}>{children}</span>
+      <span className={`inline-flex items-center justify-center gap-2 ${isLoading ? "invisible" : ""}`}>{icon && iconPosition === "start" && <span className="shrink-0" aria-hidden="true">{icon}</span>}{children}{icon && iconPosition === "end" && <span className="shrink-0" aria-hidden="true">{icon}</span>}</span>
       {isLoading && <span className="absolute inset-0 flex items-center justify-center"><Spinner size={size === "lg" ? 20 : 18} /></span>}
     </button>
   );

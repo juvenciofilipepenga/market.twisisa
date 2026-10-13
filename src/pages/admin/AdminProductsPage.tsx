@@ -3,7 +3,8 @@ import { useAuth } from "@/auth/AuthContext";
 import { useLocale } from "@/i18n/LocaleContext";
 import { api, ApiError } from "@/lib/api";
 import { formatMzn } from "@/lib/format";
-import type { Category, Product } from "@/lib/types";
+import type { Category, PricingInput, Product } from "@/lib/types";
+import { computePricing } from "@/lib/pricing";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -27,7 +28,9 @@ const LOW_STOCK = 5;
 type ImportRow = {
   name: string;
   description?: string;
-  priceMzn: number;
+  // Ou o preço fixo (priceMzn), ou os custos (pricing) de onde o servidor calcula o preço.
+  priceMzn?: number;
+  pricing?: PricingInput;
   stock: number;
   categoryId?: string;
   active: boolean;
@@ -79,9 +82,13 @@ function parseCsv(text: string): ImportRow[] {
 
   const required = [
     "name",
-    "priceMzn",
     "stock"
   ];
+
+  // Preço: coluna priceMzn (valor fixo) ou purchaseMzn (calculadora: o preço sai dos custos).
+  if (!headers.includes("priceMzn") && !headers.includes("purchaseMzn")) {
+    throw new Error("CSV_HEADERS:name,stock,priceMzn|purchaseMzn");
+  }
 
   if (
     required.some(
@@ -121,6 +128,38 @@ function parseCsv(text: string): ImportRow[] {
       );
     }
 
+    // Com purchaseMzn a linha usa a calculadora: compra e retorno são obrigatórios, o resto vazio = 0.
+    const num = (key: string) => {
+      const raw = (row[key] ?? "").replace(",", ".").trim();
+      return raw === "" ? 0 : Number(raw);
+    };
+    const hasCosts = (row.purchaseMzn ?? "").trim() !== "";
+    const pricing: PricingInput | undefined = hasCosts
+      ? {
+          purchaseMzn: num("purchaseMzn"),
+          taxPct: num("taxPct"),
+          transportMzn: num("transportMzn"),
+          otherCostsMzn: num("otherCostsMzn"),
+          returnPct: (row.returnPct ?? "").trim() === "" ? Number.NaN : num("returnPct"),
+          commissionPct: num("commissionPct"),
+          discountPct: num("discountPct")
+        }
+      : undefined;
+    if (
+      pricing &&
+      !(
+        Object.values(pricing).every(Number.isFinite) &&
+        pricing.purchaseMzn > 0 &&
+        pricing.taxPct >= 0 && pricing.taxPct <= 100 &&
+        pricing.transportMzn >= 0 && pricing.otherCostsMzn >= 0 &&
+        pricing.returnPct >= 0 && pricing.returnPct <= 1000 &&
+        pricing.commissionPct >= 0 && pricing.commissionPct <= 60 &&
+        pricing.discountPct >= 0 && pricing.discountPct <= 50
+      )
+    ) {
+      throw new Error(`CSV_ROW_PRICE:${index + 1}`);
+    }
+
     const priceMzn = Number(
       row.priceMzn
     );
@@ -132,8 +171,9 @@ function parseCsv(text: string): ImportRow[] {
     }
 
     if (
-      !Number.isFinite(priceMzn) ||
-      priceMzn < 0
+      !pricing &&
+      (!Number.isFinite(priceMzn) ||
+        priceMzn <= 0)
     ) {
       throw new Error(
         `CSV_ROW_PRICE:${index + 1}`
@@ -158,7 +198,7 @@ function parseCsv(text: string): ImportRow[] {
       description:
         row.description?.trim() ||
         undefined,
-      priceMzn,
+      ...(pricing ? { pricing } : { priceMzn }),
       stock,
       categoryId:
         row.categoryId?.trim() ||
@@ -189,8 +229,11 @@ function parseCsv(text: string): ImportRow[] {
 
 function downloadTemplate() {
   const csv =
-    "name,description,priceMzn,stock,categoryId,active,colorHex,size,variantStock\n" +
-    "Samsung A04,Exemplo,8500,10,,true,#000000,,10\n";
+    // Duas formas de dar o preço: priceMzn (valor fixo) OU purchaseMzn + returnPct (o preço é calculado, como no formulário).
+    // Vazios nas colunas de custos valem 0. A comissão vai até 60% e o desconto até 50%.
+    "name,description,priceMzn,purchaseMzn,taxPct,transportMzn,otherCostsMzn,returnPct,commissionPct,discountPct,stock,categoryId,active,colorHex,size,variantStock\n" +
+    "Samsung A04 (preço calculado),Exemplo,,10000,16,400,,80,,,10,,true,#000000,,10\n" +
+    "Cabo USB (preço fixo),Exemplo,250,,,,,,,,50,,true,,,\n";
 
   const a =
     document.createElement("a");
@@ -652,7 +695,7 @@ export default function AdminProductsPage() {
                     {index + 2}.
                   </strong>{" "}
                   {row.name} ·{" "}
-                  {row.priceMzn} MZN · stock{" "}
+                  {row.pricing ? computePricing(row.pricing).customerPrice : row.priceMzn} MZN{row.pricing ? " (calculado)" : ""} · stock{" "}
                   {row.stock}
                 </div>
               ))}

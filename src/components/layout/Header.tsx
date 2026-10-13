@@ -11,6 +11,7 @@ import type { Product } from "@/lib/types";
 import { formatMzn } from "@/lib/format";
 import { SearchIcon, BellIcon, CartIcon, BoxIcon, UserIcon } from "../icons";
 import { LanguageToggle } from "./LanguageToggle";
+import { HeaderNudges } from "./HeaderNudges";
 
 const iconButton = "press relative flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-elevated hover:text-ink";
 
@@ -99,6 +100,7 @@ export function Header() {
           ) : (
             <Link to="/entrar" className="press ml-1 hidden h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover md:inline-flex">{t("auth.login")}</Link>
           )}
+          <HeaderNudges />
           {/* Notificações só existem para clientes (sessão iniciada) */}
           {token && (
             <Link to="/notificacoes" className={iconButton} aria-label={t("nav.notifications")}>

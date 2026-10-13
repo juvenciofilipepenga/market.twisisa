@@ -10,6 +10,17 @@ export function friendlyError(err: unknown, t: (key: string) => string): string 
   return t("common.error");
 }
 
+// Falha ao CARREGAR a lista de produtos: diz o que provavelmente aconteceu (sem ligação / servidor), em vez de um erro genérico.
+// O fetch lança TypeError quando não há rede; o servidor responde com ApiError (5xx).
+export function loadError(err: unknown, t: (key: string) => string): string {
+  if (err instanceof ApiError) {
+    if (err.status === 429) return t("common.tooMany");
+    if (err.status >= 500) return t("catalog.error.server");
+  }
+  if (err instanceof TypeError) return t("catalog.error.network");
+  return t("common.error");
+}
+
 // Só aceita caminhos internos (evita redirecionar para outro site através de ?next=).
 export function safeNext(value: string | null): string {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";

@@ -4,9 +4,10 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { flyToCart } from "@/lib/fx";
 import { formatMzn } from "@/lib/format";
+import { cardFacts, priceInfo } from "@/lib/productFacts";
 import type { Product } from "@/lib/types";
 import { useToast } from "../ui/Toast";
-import { CartIcon, BoxIcon, CheckIcon } from "../icons";
+import { CartIcon, BoxIcon, CheckIcon, ArrowRightIcon } from "../icons";
 
 const LOW_STOCK = 5;
 
@@ -20,6 +21,10 @@ export function ProductCard({ product }: { product: Product }) {
   const image = product.images.find((i) => i.isPrimary) ?? product.images[0];
   const outOfStock = product.stock <= 0;
   const lowStock = !outOfStock && product.stock <= LOW_STOCK;
+  // Com variantes, escolher a opção acontece na página do produto: o botão diz isso (seta), em vez de fingir que adiciona.
+  const hasVariants = Boolean(product.variants?.length);
+  const facts = cardFacts(product, t("product.yes"), t("product.no"));
+  const price = priceInfo(product);
 
   useEffect(() => {
     if (!added) return;
@@ -28,40 +33,70 @@ export function ProductCard({ product }: { product: Product }) {
   }, [added]);
 
   function onAdd() {
-    if (product.variants?.length) { navigate(`/produto/${product.id}`); return; }
+    if (hasVariants) { navigate(`/produto/${product.id}`); return; }
     const inCart = Math.min(product.stock, (items.find((i) => i.productId === product.id && !i.variantId)?.quantity ?? 0) + 1);
     addItem(product);
     setAdded(true);
     flyToCart(imageBox.current, image?.url ?? null);
-    // Mesma chave por produto: adicionar de novo actualiza o aviso ("· 3 no carrinho") em vez de criar outro.
-    toast.show(inCart > 1 ? `${product.name} · ${inCart} ${t("toast.inCart")}` : `${product.name} ${t("toast.added")}`, {
+    // Mesma chave por produto: adicionar de novo actualiza o aviso (como "· 3 no carrinho") em vez de criar outro.
+    toast.show(inCart > 1 ? `${product.name} · ${inCart} ${t("toast.inCart")}` : t("toast.addedAsk"), {
       key: `cart:${product.id}`,
       action: { label: t("cart.view"), onClick: () => navigate("/carrinho") }
     });
   }
 
+  const hasFacts = facts.specs.length > 0 || facts.colors.length > 0 || facts.option !== null;
+  const label = hasVariants ? `${t("product.pickOptions")}: ${product.name}` : `${t("product.addToCart")}: ${product.name}`;
+
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface">
-      <Link ref={imageBox} to={`/produto/${product.id}`} className="relative block aspect-[4/5] w-full bg-elevated">
+    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-ink-faint focus-within:border-ink-faint">
+      <Link ref={imageBox} to={`/produto/${product.id}`} className="relative block aspect-square w-full overflow-hidden bg-elevated">
         {image ? (
-          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${outOfStock ? "opacity-50" : ""}`} />
+          <img src={image.url} alt={image.altText ?? product.name} loading="lazy" className={`absolute inset-0 h-full w-full object-contain p-2.5 transition-transform duration-500 ease-out motion-reduce:transition-none md:group-hover:scale-[1.04] ${outOfStock ? "opacity-50" : ""}`} />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={32} height={32} /></div>
         )}
         {outOfStock && <span className="absolute bottom-2 left-2 rounded-full bg-bg/90 px-2.5 py-1 text-[11px] font-semibold text-ink">{t("product.outOfStock")}</span>}
         {lowStock && <span className="absolute bottom-2 left-2 rounded-full bg-sun px-2.5 py-1 text-[11px] font-bold text-bg">{t("product.lowStock")}</span>}
       </Link>
-      <div className="flex flex-1 flex-col gap-2 p-3">
-        <Link to={`/produto/${product.id}`} className="line-clamp-2 min-h-[2.5rem] text-sm font-medium leading-snug text-ink">{product.name}</Link>
-        <div className="mt-auto flex items-center justify-between gap-2">
-          <p className="font-display text-base font-bold leading-none">{formatMzn(product.priceMzn)}</p>
+      <div className="flex flex-1 flex-col gap-1.5 p-2.5 sm:p-3">
+        <Link to={`/produto/${product.id}`} className="line-clamp-2 min-h-[2.35rem] break-words text-[13px] font-semibold leading-snug text-ink sm:text-sm">
+          {product.name}
+        </Link>
+
+        {hasFacts && (
+          <div className="space-y-1 text-[11px] leading-snug text-ink-muted">
+            {facts.specs.length > 0 && <p className="line-clamp-2">{facts.specs.join(" · ")}</p>}
+            {(facts.colors.length > 0 || facts.option) && (
+              <div className="flex min-w-0 items-center gap-2">
+                {facts.colors.length > 0 && (
+                  <span className="flex shrink-0 items-center" role="img" aria-label={`${facts.colors.length + facts.moreColors} ${t("card.colors")}`}>
+                    {facts.colors.map((hex) => <span key={hex} aria-hidden="true" className="-ml-1 h-3.5 w-3.5 rounded-full border border-surface ring-1 ring-white/20 first:ml-0" style={{ backgroundColor: hex }} />)}
+                    {facts.moreColors > 0 && <span className="ml-1 font-semibold">+{facts.moreColors}</span>}
+                  </span>
+                )}
+                {facts.option && (
+                  <span className="min-w-0 truncate">
+                    {facts.option.name}: {facts.option.values.join(" · ")}{facts.option.more > 0 ? ` +${facts.option.more}` : ""}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto flex items-end justify-between gap-2 pt-1">
+          <div className="min-w-0">
+            {price.from && <p className="text-[11px] leading-none text-ink-muted">{t("product.from")}</p>}
+            <p className="whitespace-nowrap font-display text-[clamp(0.72rem,3.2vw,1rem)] font-extrabold leading-tight tracking-tight sm:text-base">{formatMzn(price.amount)}</p>
+          </div>
           <button
             onClick={onAdd}
             disabled={outOfStock}
-            aria-label={product.variants?.length ? `${t("common.seeAll")}: ${product.name}` : `${t("product.addToCart")}: ${product.name}`}
-            className={`press flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
+            aria-label={label}
+            className={`press flex h-9 w-9 shrink-0 sm:h-10 sm:w-10 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:bg-elevated disabled:text-ink-faint ${added ? "bg-success text-bg" : hasVariants ? "border border-border bg-elevated text-ink hover:border-ink-faint" : "bg-primary text-white hover:bg-primary-hover active:bg-primary-active"}`}
           >
-            {added ? <CheckIcon className="pop" width={18} height={18} /> : <CartIcon width={18} height={18} />}
+            {added ? <CheckIcon className="pop" width={18} height={18} /> : hasVariants ? <ArrowRightIcon width={18} height={18} /> : <CartIcon width={18} height={18} />}
           </button>
         </div>
       </div>

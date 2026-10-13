@@ -31,7 +31,7 @@ export const MORE_GROUPS: Array<{ id: MoreGroupId; titleKey: string }> = [
 // A ordem dentro de cada grupo é a ordem desta lista.
 export const MORE_ITEMS: MoreItem[] = [
   { id: "orders", group: "account", labelKey: "more.item.orders", descKey: "more.item.ordersDesc", Icon: ClipboardIcon, audience: "client", to: "/pedidos" },
-  { id: "invoices", group: "account", labelKey: "more.item.invoices", descKey: "more.item.invoicesDesc", Icon: DocumentIcon, audience: "client", to: "/pedidos?faturas=1" },
+  { id: "invoices", group: "account", labelKey: "more.item.invoices", descKey: "more.item.invoicesDesc", Icon: DocumentIcon, audience: "client", to: "/pedidos?separador=wallet" },
   { id: "settings", group: "account", labelKey: "more.item.settings", descKey: "more.item.settingsDesc", Icon: SettingsIcon, audience: "any", to: "/definicoes" },
   { id: "support", group: "help", labelKey: "more.item.support", descKey: "more.item.supportDesc", Icon: ChatIcon, audience: "any", action: "openChat" },
   { id: "install", group: "app", labelKey: "more.item.install", descKey: "more.item.installDesc", Icon: DownloadIcon, audience: "any", to: "/instalar" },

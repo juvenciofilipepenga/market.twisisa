@@ -9,6 +9,7 @@ import { friendlyError, safeNext } from "@/lib/errors";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { Field, PasswordField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
+import { WELCOME_FLAG } from "@/config/community";
 
 export default function RegisterPage() {
   const { t } = useLocale();
@@ -22,6 +23,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [accepted, setAccepted] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -35,10 +38,13 @@ export default function RegisterPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    // Aceitar os termos é condição para criar conta (não vai ao servidor: só abre a porta do registo).
+    if (!accepted) { setTermsError(true); return; }
     setLoading(true);
     setError(null);
     try {
       await register(name, email, password, phone || undefined, inviter ? refCode : undefined);
+      try { window.localStorage.setItem(WELCOME_FLAG, "1"); } catch { /* sem armazenamento: só não há cartão de boas-vindas */ }
       navigate(safeNext(searchParams.get("next")), { replace: true });
     } catch (err) {
       setError(friendlyError(err, t));
@@ -64,6 +70,13 @@ export default function RegisterPage() {
         <Field label={t("auth.email")} required type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Field label={t("auth.phone")} type="tel" autoComplete="tel" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
         <PasswordField label={t("auth.password")} required minLength={10} autoComplete="new-password" hint={t("auth.passwordHint")} value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div>
+          <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed text-ink-muted">
+            <input type="checkbox" checked={accepted} aria-required="true" aria-invalid={termsError || undefined} onChange={(e) => { setAccepted(e.target.checked); if (e.target.checked) setTermsError(false); }} className="mt-0.5 h-5 w-5 shrink-0 accent-primary" />
+            <span>{t("auth.terms.pre")} <Link to="/termos" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-text underline underline-offset-4 hover:text-ink">{t("auth.terms.terms")}</Link> {t("auth.terms.and")} <Link to="/privacidade" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary-text underline underline-offset-4 hover:text-ink">{t("auth.terms.privacy")}</Link>.</span>
+          </label>
+          {termsError ? <p role="alert" className="mt-1.5 pl-8 text-xs text-danger">{t("auth.terms.required")}</p> : <p className="mt-1.5 pl-8 text-xs text-ink-faint">{t("auth.terms.note")}</p>}
+        </div>
         {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>{t("auth.submit")}</Button>
       </form>

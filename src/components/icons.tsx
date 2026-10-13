@@ -140,3 +140,15 @@ export function MoreIcon(props: SVGProps<SVGSVGElement>) {
 export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   return (<svg {...base(props)}><path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0" /><circle cx="15" cy="6" r="2.2" /><circle cx="9" cy="12" r="2.2" /><circle cx="17" cy="18" r="2.2" /></svg>);
 }
+
+
+// Aparência e acções comuns
+export function SunIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" /></svg>);
+}
+export function MoonIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.7 8.7 0 1 0 20.5 14.2Z" /></svg>);
+}
+export function ResetIcon(props: SVGProps<SVGSVGElement>) {
+  return (<svg {...base(props)}><path d="M3 11a9 9 0 1 1 2.6 6.4M3 4v7h7" /></svg>);
+}

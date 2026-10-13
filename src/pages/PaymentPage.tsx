@@ -27,7 +27,7 @@ import { useToast } from "@/components/ui/Toast";
 type Step = "loading" | "choose" | "sending" | "waiting" | "manualCard" | "manual" | "review" | "success" | "blocked" | "not-found";
 const ACTIVE = new Set(["INITIATED", "AUTHENTICATING", "PENDING_CONFIRMATION", "PAYMENT_PENDING", "PROOF_SUBMITTED", "UNDER_REVIEW"]);
 const PAID_ORDER = new Set(["PAID", "PROCESSING", "READY_FOR_SHIPMENT", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"]);
-const LATE_CLAIM_LOOKBACK_MS = 35 * 60_000; // um pouco mais que a tolerância do servidor (30 min)
+const LATE_CLAIM_LOOKBACK_MS = 3 * 60_000; // tolerância do servidor (2 min) + 1 min de margem
 
 // Fluxo automático: escolher método → pedido no telemóvel → espera → (só depois de o servidor confirmar com o ZumboPay) celebração.
 // Fluxo manual (plano B): método + número e nome de quem paga → cartão da loja → "Enviar pedido" (5 min) → pagar → "Já paguei" → loja confirma.
@@ -130,7 +130,11 @@ export default function PaymentPage() {
           }
           setBlocked("pay.blocked.paid"); setStep("blocked"); return;
         }
-        if (loaded.status !== "PENDING_PAYMENT" && loaded.status !== "PAYMENT_REVIEW") { setBlocked("pay.blocked.closed"); setStep("blocked"); return; }
+        if (loaded.status !== "PENDING_PAYMENT" && loaded.status !== "PAYMENT_REVIEW") {
+          setBlocked(loaded.status === "CANCELLED" && loaded.cancellationReason === "PAYMENT_EXPIRED" ? "pay.blocked.expired" : "pay.blocked.closed");
+          setStep("blocked");
+          return;
+        }
 
         // Retoma o pagamento em curso: online à espera do PIN, ou manual (a pagar / a aguardar a loja / expirado mas ainda reclamável).
         const lateManual = payments.find((p) => p.provider === "MANUAL" && p.status === "TIMEOUT" && p.expiresAt && Date.now() < new Date(p.expiresAt).getTime() + LATE_CLAIM_LOOKBACK_MS);
@@ -145,6 +149,10 @@ export default function PaymentPage() {
           }
         }
         if (loaded.status === "PAYMENT_REVIEW") { setBlocked("pay.blocked.review"); setStep("blocked"); return; }
+        // Prazo de pagamento terminado (e nada a reclamar): já não se paga. O servidor fecha a encomenda logo a seguir.
+        if (loaded.paymentDeadline && new Date(loaded.paymentDeadline).getTime() <= Date.now() + (loaded.serverNow ? new Date(loaded.serverNow).getTime() - Date.now() : 0)) {
+          setBlocked("pay.blocked.expired"); setStep("blocked"); return;
+        }
         setStep("choose");
       } catch {
         if (!cancelled) setStep("not-found");
@@ -195,6 +203,7 @@ export default function PaymentPage() {
         const view = await api.payments.status(err.data.paymentId, token).catch(() => null);
         if (view) { applyView(view, true); return; }
       }
+      if (err instanceof ApiError && err.code === "ORDER_EXPIRED") { setBlocked("pay.blocked.expired"); setStep("blocked"); return; }
       // O ZumboPay pode ter acabado de falhar: atualiza o que está disponível; se o online caiu, o ecrã passa ao manual.
       const fresh = await api.payments.methods().catch(() => null);
       if (fresh) setInfo(fresh);
@@ -219,6 +228,7 @@ export default function PaymentPage() {
         const view = await api.payments.status(err.data.paymentId, token).catch(() => null);
         if (view) { applyView(view, true); return; }
       }
+      if (err instanceof ApiError && err.code === "ORDER_EXPIRED") { setBlocked("pay.blocked.expired"); setStep("blocked"); return; }
       setManualError(t(err instanceof ApiError && err.code === "PAYER_NUMBER_BUSY" ? "pay.manual.busy" : err instanceof ApiError && err.code === "MANUAL_PAYMENT_UNAVAILABLE" ? "pay.manual.unavailable" : "pay.manual.sendError"));
     } finally {
       setManualBusy(false);
@@ -226,15 +236,17 @@ export default function PaymentPage() {
   }
 
   // "Já paguei": a partir daqui o pedido aparece ao admin, que confere no histórico da conta da loja.
-  async function claim(code: string) {
+  async function claim(code: string, proof?: File) {
     if (!token || !payment) return;
     setManualBusy(true);
     setManualError(null);
     try {
-      const view = await api.payments.claim(payment.id, { transactionCode: code || undefined }, token);
+      const uploaded = proof ? await api.media.uploadProof(proof, token) : null;
+      const view = await api.payments.claim(payment.id, { transactionCode: code || undefined, proofUrl: uploaded?.url }, token);
       applyView(view, true);
     } catch (err) {
       if (err instanceof ApiError && err.code === "PAYMENT_NOT_CLAIMABLE") { setManualError(t("pay.manual.notClaimable")); }
+      else if (err instanceof ApiError && err.code === "CLOUDINARY_NOT_CONFIGURED") setManualError("O envio de comprovativos está temporariamente indisponível. Pode continuar sem anexo.");
       else setManualError(t(err instanceof ApiError && err.code === "TRANSACTION_CODE_ALREADY_USED" ? "pay.manual.codeUsed" : "pay.manual.sendError"));
     } finally {
       setManualBusy(false);
@@ -261,6 +273,12 @@ export default function PaymentPage() {
     }
   }
 
+  // O prazo é da encomenda (começa ao enviar o pedido): o total para a barra, e o que resta para o texto "Tem N minutos".
+  const deadlineMs = order?.paymentDeadline ? new Date(order.paymentDeadline).getTime() : null;
+  const clockSkew = order?.serverNow ? new Date(order.serverNow).getTime() - Date.now() : 0;
+  const totalWindowSeconds = deadlineMs && order ? Math.round((deadlineMs - new Date(order.createdAt).getTime()) / 1000) : (info?.manualWindowSeconds ?? 1800);
+  const secondsLeft = deadlineMs ? Math.max(60, Math.round((deadlineMs - Date.now() - clockSkew) / 1000)) : (info?.manualWindowSeconds ?? 1800);
+
   const goOrder = () => navigate(`/encomenda/${orderId}`);
   const itemCount = order?.items?.reduce((n, i) => n + i.quantity, 0) ?? 0;
   const store = storeFor(payment?.method ?? method);
@@ -286,10 +304,10 @@ export default function PaymentPage() {
       {step === "sending" && order && <SendingStep method={method} phone={phone} total={order.totalMzn} />}
       {step === "manualCard" && order && store && (
         <ManualCardStep method={method} amount={order.totalMzn} store={store} payerName={payerName.trim()} payerNumber={phone}
-          windowSeconds={info?.manualWindowSeconds ?? 300} busy={manualBusy} error={manualError} onSend={sendManual} onBack={() => setStep("choose")} />
+          windowSeconds={secondsLeft} busy={manualBusy} error={manualError} onSend={sendManual} onBack={() => setStep("choose")} />
       )}
       {step === "manual" && payment && store && (
-        <ManualStep payment={payment} store={store} windowSeconds={info?.manualWindowSeconds ?? 300} busy={manualBusy} error={manualError}
+        <ManualStep payment={payment} store={store} windowSeconds={totalWindowSeconds} busy={manualBusy} error={manualError}
           onClaim={claim} onRestart={restart} onChangeMethod={changeMethod} />
       )}
       {step === "review" && payment && <ReviewStep payment={payment} offline={offline} onOrder={goOrder} />}

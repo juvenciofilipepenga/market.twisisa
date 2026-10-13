@@ -4,7 +4,7 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { Header } from "@/components/layout/Header";
 import { CategoryChips } from "@/components/layout/CategoryChips";
 import { Hero } from "@/components/home/Hero";
-import { FeaturedSection } from "@/components/home/FeaturedSection";
+import { ExploreBand } from "@/components/home/ExploreBand";
 import { TrustBar } from "@/components/home/TrustBar";
 import { CatalogSection } from "@/components/home/CatalogSection";
 
@@ -24,15 +24,18 @@ export default function HomePage() {
     <main className="pb-6">
       <Header />
       <div className="mx-auto max-w-6xl">
-        {!hasFilter && <Hero />}
-        <CategoryChips />
-        {!hasFilter && (
+        {/* Descobrir: o que acabou de chegar → explorar por categoria → o catálogo → o que a loja garante.
+            Com filtro (pesquisa ou categoria) o cliente já sabe o que quer: ficam só os filtros e os resultados. */}
+        {hasFilter ? (
+          <CategoryChips />
+        ) : (
           <>
-            <FeaturedSection />
-            <TrustBar />
+            <Hero />
+            <ExploreBand />
           </>
         )}
         <CatalogSection />
+        {!hasFilter && <TrustBar />}
       </div>
     </main>
   );

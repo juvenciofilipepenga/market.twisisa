@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
 import { useLocale } from "@/i18n/LocaleContext";
 import { api } from "@/lib/api";
@@ -23,6 +23,8 @@ export default function AdminChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
+  const typingTimer = useRef<number | null>(null);
+  const [customerTyping, setCustomerTyping] = useState(false);
 
   function reload() {
     if (!token) return;
@@ -33,6 +35,7 @@ export default function AdminChatPage() {
 
   useEffect(() => {
     if (!token || !activeId) return;
+    setCustomerTyping(false);
     api.admin.chat.messages(activeId, token).then((r) => setMessages(r.messages));
   }, [token, activeId]);
 
@@ -43,16 +46,31 @@ export default function AdminChatPage() {
       if (payload.conversationId === activeId) setMessages((prev) => (prev.some((m) => m.id === payload.message.id) ? prev : [...prev, payload.message]));
       api.admin.chat.list(token!, { status: statusFilter || undefined, limit: 30 }).then((r) => setConversations(r.data)).catch(() => { /* lista fica como está */ });
     }
+    function onTyping(payload: { conversationId?: string; isTyping?: boolean; senderType?: string }) {
+      if (payload.conversationId !== activeId || payload.senderType !== "CUSTOMER") return;
+      setCustomerTyping(Boolean(payload.isTyping));
+    }
     socket.on("chat.message", onMessage);
-    return () => { socket.off("chat.message", onMessage); };
+    socket.on("chat.typing", onTyping);
+    return () => { socket.off("chat.message", onMessage); socket.off("chat.typing", onTyping); };
   }, [token, activeId, statusFilter]);
 
   useEffect(() => { listRef.current?.scrollTo({ top: listRef.current.scrollHeight }); }, [messages]);
 
+  function notifyTyping(value: string) {
+    if (!token || !activeId) return;
+    const socket = getSocket(token);
+    socket.emit("chat.typing", { conversationId: activeId, isTyping: Boolean(value.trim()) });
+    if (typingTimer.current) window.clearTimeout(typingTimer.current);
+    if (value.trim()) typingTimer.current = window.setTimeout(() => socket.emit("chat.typing", { conversationId: activeId, isTyping: false }), 1800);
+  }
+
   async function reply() {
     if (!token || !activeId || !text.trim()) return;
-    const res = await api.admin.chat.reply(token, activeId, text.trim());
-    setMessages((prev) => [...prev, res.message]);
+    const current = text.trim();
+    notifyTyping("");
+    const res = await api.admin.chat.reply(token, activeId, current);
+    setMessages((prev) => prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]);
     setText("");
   }
 
@@ -102,23 +120,35 @@ export default function AdminChatPage() {
           ) : (
             <>
               <div className="flex items-center justify-between border-b border-border p-3">
-                <p className="text-sm font-semibold">{active.user?.name}</p>
+                <div><p className="text-sm font-semibold">{active.user?.name}</p>{customerTyping && <p className="text-xs text-ink-muted">Cliente está a escrever…</p>}</div>
                 {active.status !== "CLOSED" && (
                   <Button variant="secondary" onClick={closeConversation}>{t("admin.chat.close")}</Button>
                 )}
               </div>
               <div ref={listRef} className="flex-1 space-y-2 overflow-y-auto p-3">
-                {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.senderType === "ADMIN" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[75%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${m.senderType === "ADMIN" ? "bg-primary text-white" : "bg-elevated text-ink"}`}>
-                      {m.content}
+                {messages.map((m, index) => {
+                  const date = new Date(m.createdAt);
+                  const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                  const previous = index > 0 ? new Date(messages[index - 1].createdAt) : null;
+                  const previousKey = previous ? `${previous.getFullYear()}-${previous.getMonth()}-${previous.getDate()}` : "";
+                  const today = new Date(); today.setHours(0, 0, 0, 0);
+                  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+                  const normalized = new Date(date); normalized.setHours(0, 0, 0, 0);
+                  const dayLabel = normalized.getTime() === today.getTime() ? "Hoje" : normalized.getTime() === yesterday.getTime() ? "Ontem" : new Intl.DateTimeFormat("pt-PT", { day: "numeric", month: "long", year: date.getFullYear() !== today.getFullYear() ? "numeric" : undefined }).format(date);
+                  return <Fragment key={m.id}>{dayKey !== previousKey && <div className="chat-day-divider"><span>{dayLabel}</span></div>}
+                    <div className={`flex ${m.senderType === "ADMIN" ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[82%] whitespace-pre-line rounded-2xl px-3 py-2 text-sm ${m.senderType === "ADMIN" ? "bg-primary text-white" : "bg-elevated text-ink"}`}>
+                        {m.content}
+                        {m.attachments?.map((a) => a.mimeType.startsWith("image/") ? <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="mt-2 block overflow-hidden rounded-xl"><img src={a.url} alt="Imagem enviada" loading="lazy" className="max-h-64 w-full object-contain" /></a> : <a key={a.id} href={a.url} target="_blank" rel="noreferrer" className="mt-2 block rounded-lg bg-black/10 px-2 py-2 text-xs underline">{a.mimeType === "application/pdf" ? "Abrir documento PDF" : "Abrir anexo"}</a>)}
+                        <p className="mt-1 text-right text-[10px] opacity-65">{new Intl.DateTimeFormat("pt-PT", { hour: "2-digit", minute: "2-digit" }).format(date)}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  </Fragment>;
+                })}
               </div>
               {active.status !== "CLOSED" && (
                 <div className="flex items-center gap-2 border-t border-border p-3">
-                  <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") reply(); }}
+                  <input value={text} onChange={(e) => { setText(e.target.value); notifyTyping(e.target.value); }} onKeyDown={(e) => { if (e.key === "Enter") reply(); }}
                     className="flex-1 rounded-xl border border-border bg-elevated px-3 py-2 text-sm focus:border-primary focus:outline-none" />
                   <Button onClick={reply} disabled={!text.trim()}>{t("admin.chat.reply")}</Button>
                 </div>

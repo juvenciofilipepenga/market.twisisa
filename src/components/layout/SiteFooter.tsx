@@ -88,6 +88,7 @@ export function SiteFooter() {
           <li><Link to="/termos" className={link}>{t("legal.terms")}</Link></li>
           <li><Link to="/privacidade" className={link}>{t("legal.privacy")}</Link></li>
           <li><Link to="/cookies" className={link}>{t("legal.cookies")}</Link></li>
+          <li><Link to="/mapa-do-site" className={link}>{t("nav.sitemap")}</Link></li>
         </Column>
 
         <Column title={t("footer.help")} defaultOpen>

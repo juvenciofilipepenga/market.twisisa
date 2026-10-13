@@ -16,6 +16,8 @@ export interface Promo {
   scrollPct?: number;
   /** Depois de vista (fechada ou clicada), só volta a aparecer passadas estas horas. */
   cooldownHours: number;
+  /** true = não abre diálogo: aparece como ícone temporário no header (ver HeaderNudges), de vez em quando. */
+  nudge?: boolean;
   art: string;
   title: Localized;
   body: Localized;
@@ -45,6 +47,7 @@ export const PROMOS: Promo[] = [
   {
     id: "invite-friends",
     enabled: true,
+    nudge: true,
     audience: "user",
     routes: ["/"],
     delayMs: 14000,
@@ -62,6 +65,7 @@ export const PROMOS: Promo[] = [
     // com preço/percentagem inventados seria enganar o cliente. Quando existir, preencher e pôr enabled: true.
     id: "campaign-template",
     enabled: false,
+    nudge: true,
     audience: "all",
     routes: ["/"],
     delayMs: 6000,

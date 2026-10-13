@@ -5,7 +5,7 @@ import type { AuthUser } from "../lib/types";
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
-  /** A ler a sessão guardada no dispositivo (instantâneo). */
+  /** A confirmar com o servidor a sessão guardada no dispositivo (sem sessão guardada, termina logo). */
   loading: boolean;
   /** O servidor confirmou a sessão guardada (papéis incluídos). Sem sessão, um visitante conta como confirmado. */
   verified: boolean;
@@ -20,11 +20,11 @@ const TOKEN_KEY = "twisisa.token";
 const USER_KEY = "twisisa.user";
 const REVERIFY_MS = 60_000;
 
-// NOTA DE SEGURANÇA: o token fica em localStorage (simples, sem backend próprio de sessão). Para produção o ideal
+// NOTA DE SEGURANÇA: só o token fica em localStorage (simples, sem backend próprio de sessão). Para produção o ideal
 // é um cookie httpOnly emitido por um pequeno servidor proxy — fica como próximo passo, não implementado.
-// O que o localStorage diz sobre papéis NUNCA é de confiança: o utilizador pode editá-lo. Por isso a sessão é
-// confirmada no servidor (GET /auth/me) ao abrir a app e quando o separador volta a ficar visível, e a área
-// de administração só abre depois dessa confirmação (`verified`). O backend impõe sempre as permissões reais.
+// O utilizador (nome, email, papéis) NÃO se guarda no dispositivo: vem sempre do servidor (GET /auth/me) ao abrir a app
+// e quando o separador volta a ficar visível, e a área de administração só abre depois dessa confirmação (`verified`).
+// O backend impõe sempre as permissões reais.
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setVerified(true);
     window.localStorage.removeItem(TOKEN_KEY);
-    window.localStorage.removeItem(USER_KEY);
+    window.localStorage.removeItem(USER_KEY); // chave antiga: versões anteriores guardavam aqui dados pessoais
   }, []);
 
   const verify = useCallback(async (tokenValue: string) => {
@@ -46,7 +46,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const fresh = await api.auth.me(tokenValue);
       const next: AuthUser = { id: fresh.id, name: fresh.name, email: fresh.email, roles: fresh.roles };
       setUser(next);
-      window.localStorage.setItem(USER_KEY, JSON.stringify(next));
       setVerified(true);
     } catch (err) {
       // Token recusado, conta restrita ou utilizador inexistente: a sessão acaba aqui.
@@ -56,22 +55,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [logout]);
 
   useEffect(() => {
-    const storedToken = window.localStorage.getItem(TOKEN_KEY);
-    const storedUser = window.localStorage.getItem(USER_KEY);
-    if (storedToken && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser) as AuthUser);
-        setToken(storedToken);
-        void verify(storedToken);
-      } catch {
-        window.localStorage.removeItem(TOKEN_KEY);
-        window.localStorage.removeItem(USER_KEY);
-        setVerified(true);
-      }
-    } else {
+    // Limpa o que versões anteriores guardavam (nome, email, papéis): já não se guarda nada disto no dispositivo.
+    let storedToken: string | null = null;
+    try {
+      window.localStorage.removeItem(USER_KEY);
+      storedToken = window.localStorage.getItem(TOKEN_KEY);
+    } catch { /* sem armazenamento: visitante */ }
+    if (!storedToken) {
       setVerified(true);
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+    // Há sessão: o utilizador vem do servidor. `loading` só termina quando ele responde (ou falha), para as páginas
+    // protegidas e o admin não decidirem com `user` ainda vazio. Em falha de rede o token fica e volta a confirmar-se depois.
+    setToken(storedToken);
+    void verify(storedToken).finally(() => setLoading(false));
   }, [verify]);
 
   useEffect(() => {
@@ -94,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setVerified(true);
     lastCheck.current = Date.now();
     window.localStorage.setItem(TOKEN_KEY, nextToken);
-    window.localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
   }
 
   async function login(email: string, password: string) {

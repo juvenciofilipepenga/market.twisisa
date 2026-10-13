@@ -43,7 +43,7 @@ export function AreaChart({ points, format, height = 180, ariaLabel }: { points:
         {shown !== null && cur && (
           <>
             <line x1={x(shown)} x2={x(shown)} y1={padTop} y2={H - padBottom} stroke="currentColor" className="text-ink-faint" strokeDasharray="2 4" />
-            <circle cx={x(shown)} cy={y(cur.value)} r="5" fill="rgb(var(--c-primary))" stroke="#140F0E" strokeWidth="2" />
+            <circle cx={x(shown)} cy={y(cur.value)} r="5" fill="rgb(var(--c-primary))" stroke="rgb(var(--c-bg))" strokeWidth="2" />
           </>
         )}
         {points.map((p, i) => i % labelEvery === 0 || i === n - 1 ? (

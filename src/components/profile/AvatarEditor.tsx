@@ -15,11 +15,11 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "")).toUpperCase() || "?";
 }
 
-interface Props { name: string; photo: string | null; token: string; onChange: (photo: string | null) => void }
+interface Props { name: string; photo: string | null; token: string; userId: string; onChange: (photo: string | null) => void }
 
 // Avatar com botão de câmara e um menu pequeno: Câmara | Galeria (| Remover, se já houver foto).
 // Câmara abre a câmara frontal no telemóvel (no computador abre o seletor de ficheiros).
-export function AvatarEditor({ name, photo, token, onChange }: Props) {
+export function AvatarEditor({ name, photo, token, userId, onChange }: Props) {
   const { t } = useLocale();
   const toast = useToast();
   const [menu, setMenu] = useState<{ top: number; left: number } | null>(null);
@@ -72,7 +72,7 @@ export function AvatarEditor({ name, photo, token, onChange }: Props) {
 
   async function onSaved(blob: Blob) {
     try {
-      const saved = await saveAvatar(blob, token);
+      const saved = await saveAvatar(blob, token, userId);
       onChange(saved.url);
       setFile(null);
       toast.show(saved.where === "cloud" ? t("avatar.updated") : t("avatar.savedLocal"), { key: "avatar" });
@@ -84,7 +84,7 @@ export function AvatarEditor({ name, photo, token, onChange }: Props) {
   async function onRemove() {
     setMenu(null);
     try {
-      await removeAvatar(token);
+      await removeAvatar(token, userId);
       onChange(null);
       toast.show(t("avatar.removed"), { key: "avatar" });
     } catch {

@@ -17,6 +17,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 import NotificationPage from "./pages/NotificationPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import LegalPage from "./pages/legal/LegalPage";
+import SiteMapPage from "./pages/SiteMapPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import MorePage from "./pages/MorePage";
@@ -26,6 +27,7 @@ import { ToastProvider } from "./components/ui/Toast";
 import { NotificationsProvider } from "./notifications/NotificationsContext";
 import InstallPage from "./pages/InstallPage";
 import SettingsPage from "./pages/SettingsPage";
+import ReferralsPage from "./pages/ReferralsPage";
 import SearchPage from "./pages/SearchPage";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
@@ -65,10 +67,12 @@ export default function App() {
                 <Route path="/definicoes" element={<SettingsPage />} />
                 <Route path="/mais" element={<MorePage />} />
                 <Route path="/pedidos" element={<RequireAuth><OrdersPage /></RequireAuth>} />
+                <Route path="/convites" element={<RequireAuth><ReferralsPage /></RequireAuth>} />
                 <Route path="/pesquisa" element={<SearchPage />} />
                 <Route path="/termos" element={<LegalPage doc="terms" />} />
                 <Route path="/privacidade" element={<LegalPage doc="privacy" />} />
                 <Route path="/cookies" element={<LegalPage doc="cookies" />} />
+                <Route path="/mapa-do-site" element={<SiteMapPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Route>
 
