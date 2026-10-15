@@ -2,7 +2,7 @@
 // Só entram páginas públicas e indexáveis (nada do que o robots.txt bloqueia): início, mapa do site, páginas legais e
 // todos os produtos activos, com a data da última alteração. Os produtos vêm da API pública (VITE_API_URL).
 // Se a API falhar, devolve só as páginas fixas com cache curto: o Google não recebe um erro e volta a tentar em breve.
-const SITE_URL = (process.env.VITE_SITE_URL || "https://market-twisisa.vercel.app").replace(/\/$/, "");
+const SITE_URL = (process.env.VITE_SITE_URL || "https://market.twisisa.site").replace(/\/$/, "");
 const API_URL = (process.env.VITE_API_URL || "").replace(/\/$/, "");
 const PAGE_SIZE = 100; // máximo que a API pública aceita por pedido
 const MAX_PAGES = 50; // tecto de segurança: 5000 produtos

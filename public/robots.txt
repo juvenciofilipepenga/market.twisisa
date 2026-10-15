@@ -9,4 +9,4 @@ Disallow: /notificacoes
 Disallow: /entrar
 Disallow: /registar
 
-Sitemap: https://market-twisisa.vercel.app/sitemap.xml
+Sitemap: https://market.twisisa.site/sitemap.xml
