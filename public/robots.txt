@@ -1,6 +1,8 @@
 # Áreas privadas ou sem valor para pesquisa ficam fora. O resto da loja pode ser indexado.
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /icons/
 Disallow: /admin
 Disallow: /perfil
 Disallow: /carrinho
@@ -8,5 +10,12 @@ Disallow: /encomenda
 Disallow: /notificacoes
 Disallow: /entrar
 Disallow: /registar
+Disallow: /pagamento
+Disallow: /pedidos
+Disallow: /convites
+Disallow: /definicoes
+Disallow: /pesquisa
+Disallow: /*?search=
+Disallow: /*?categoryId=
 
 Sitemap: https://market.twisisa.site/sitemap.xml

@@ -1,4 +1,4 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useCategories } from "@/lib/useCategories";
 import { useLocale } from "@/i18n/LocaleContext";
 import { Skeleton } from "../ui/Skeleton";
@@ -13,19 +13,23 @@ const chipOn = "border-ink bg-ink text-bg";
 // `embedded`: dentro de outro bloco (ex.: "Encontre o que procura"), que já tem o seu próprio espaçamento.
 export function CategoryChips({ embedded = false }: { embedded?: boolean }) {
   const { t } = useLocale();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const active = searchParams.get("categoryId");
+  const { slug: activeSlug } = useParams<{ slug?: string }>();
   const search = searchParams.get("search") ?? undefined;
   const categories = useCategories();
   const rail = `no-scrollbar flex gap-2 overflow-x-auto ${embedded ? "" : "px-4 py-4"}`;
 
-  function select(categoryId: string | null) {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (categoryId) params.set("categoryId", categoryId);
-    navigate(`/${params.toString() ? `?${params.toString()}` : ""}`);
+  // Ligações <a href> reais. Sem pesquisa, cada categoria tem a sua página indexável (/categoria/:slug);
+  // com pesquisa, mantém-se o filtro em /?search=&categoryId= (não indexável).
+  function hrefFor(c: { id: string; slug: string } | null): string {
+    if (!search) return c ? `/categoria/${encodeURIComponent(c.slug)}` : "/";
+    const params = new URLSearchParams({ search });
+    if (c) params.set("categoryId", c.id);
+    return `/?${params.toString()}`;
   }
+  const activeId = searchParams.get("categoryId");
+  const isActive = (c: { id: string; slug: string }) => (activeSlug ? activeSlug === c.slug : activeId === c.id);
+  const noneActive = !activeSlug && !activeId;
 
   if (categories === null) {
     return (
@@ -37,13 +41,13 @@ export function CategoryChips({ embedded = false }: { embedded?: boolean }) {
 
   return (
     <div className={rail}>
-      <button onClick={() => select(null)} aria-pressed={!active} className={`${chip} ${!active ? chipOn : chipOff}`}>
+      <Link to={hrefFor(null)} aria-current={noneActive ? "page" : undefined} className={`${chip} ${noneActive ? chipOn : chipOff}`}>
         {t("categories.all")}
-      </button>
+      </Link>
       {categories.map((c) => (
-        <button key={c.id} onClick={() => select(c.id)} aria-pressed={active === c.id} className={`${chip} ${active === c.id ? chipOn : chipOff}`}>
+        <Link key={c.id} to={hrefFor(c)} aria-current={isActive(c) ? "page" : undefined} className={`${chip} ${isActive(c) ? chipOn : chipOff}`}>
           {c.name}
-        </button>
+        </Link>
       ))}
     </div>
   );

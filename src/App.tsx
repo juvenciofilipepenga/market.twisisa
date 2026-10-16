@@ -7,6 +7,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
+import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
 import OrderPage from "./pages/OrderPage";
 import PaymentPage from "./pages/PaymentPage";
@@ -58,6 +59,7 @@ export default function App() {
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/produto/:id" element={<ProductPage />} />
+                <Route path="/categoria/:slug" element={<CategoryPage />} />
                 <Route path="/carrinho" element={<CartPage />} />
                 <Route path="/encomenda/:id" element={<RequireAuth><OrderPage /></RequireAuth>} />
                 <Route path="/perfil" element={<RequireAuth><ProfilePage /></RequireAuth>} />

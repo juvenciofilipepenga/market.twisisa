@@ -6,6 +6,9 @@ import { useLocale } from "@/i18n/LocaleContext";
 import { useCart } from "@/cart/CartContext";
 import { flyToCart } from "@/lib/fx";
 import { useDocumentMeta } from "@/lib/useDocumentMeta";
+import { useCategories } from "@/lib/useCategories";
+import { Breadcrumbs } from "@/components/layout/Breadcrumbs";
+import { breadcrumbJsonLd, categoryPath, productJsonLd, productMeta, productPath } from "../../seo/seo.js";
 import { deriveOptionDefs, findSelectedVariant } from "@/lib/catalog";
 import { Modal } from "@/components/ui/Modal";
 import { OptionPicker } from "@/components/product/OptionPicker";
@@ -47,25 +50,19 @@ export default function ProductPage() {
 
   const loaded = state.kind === "ready" ? state.product : null;
   const loadedImage = loaded ? (loaded.images.find((i) => i.isPrimary) ?? loaded.images[0])?.url : undefined;
+  const categories = useCategories();
+  const category = loaded?.categoryId ? (categories?.find((c) => c.id === loaded.categoryId) ?? null) : null;
+  // Mesmo texto que o servidor (api/render.js) escreve no HTML: ver seo/seo.js.
+  const meta = loaded ? productMeta(loaded, category) : null;
+  const trail = loaded
+    ? [{ name: t("nav.home"), path: "/" }, ...(category ? [{ name: category.name, path: categoryPath(category) }] : []), { name: loaded.name, path: productPath(loaded) }]
+    : [];
   useDocumentMeta({
-    title: loaded ? `${loaded.name} · Twisisa Market` : `${t("nav.home")} · Twisisa Market`,
-    description: loaded?.description ? loaded.description.replace(/\s+/g, " ").slice(0, 155) : t("seo.home.description"),
+    title: meta?.title ?? `${t("nav.home")} · Twisisa Market`,
+    description: meta?.description ?? t("seo.home.description"),
     image: loadedImage ?? null,
     noindex: !loaded,
-    jsonLd: loaded ? {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: loaded.name,
-      description: loaded.description ?? undefined,
-      image: loaded.images.map((i) => i.url),
-      offers: {
-        "@type": "Offer",
-        url: `${SITE_URL}/produto/${loaded.id}`,
-        priceCurrency: "MZN",
-        price: Number(loaded.priceMzn),
-        availability: loaded.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-      }
-    } : null
+    jsonLd: loaded ? [productJsonLd(loaded, SITE_URL), breadcrumbJsonLd(trail, SITE_URL)] : null
   });
 
   useEffect(() => {
@@ -150,6 +147,7 @@ export default function ProductPage() {
     <main className="pb-28 md:pb-10">
       <Header />
       <div className="mx-auto max-w-5xl px-4 py-4">
+        {loaded && <Breadcrumbs trail={[{ name: t("nav.home"), to: "/" }, ...(category ? [{ name: category.name, to: categoryPath(category) }] : [])]} current={loaded.name} />}
         <button onClick={goBack} className="press mb-3 -ml-2 flex h-10 items-center gap-1 rounded-lg px-2 text-sm text-ink-muted hover:text-ink">
           <ChevronLeftIcon width={16} height={16} />{t("common.back")}
         </button>

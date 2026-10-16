@@ -67,7 +67,7 @@ export function SiteFooter() {
 
         <Column title={t("footer.shop")}>
           <li><Link to="/" className={link}>{t("nav.home")}</Link></li>
-          {categories.map((c) => <li key={c.id}><Link to={`/?categoryId=${c.id}`} className={link}>{c.name}</Link></li>)}
+          {categories.map((c) => <li key={c.id}><Link to={`/categoria/${encodeURIComponent(c.slug)}`} className={link}>{c.name}</Link></li>)}
         </Column>
 
         <Column title={t("footer.account")}>

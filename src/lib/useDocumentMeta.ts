@@ -11,7 +11,7 @@ interface PageMeta {
   /** Páginas privadas ou sem valor para pesquisa (carrinho, perfil, resultados de pesquisa…). */
   noindex?: boolean;
   /** Dados estruturados (schema.org), ex.: Product. */
-  jsonLd?: Record<string, unknown> | null;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[] | null;
 }
 
 function setTag(kind: "name" | "property", key: string, content: string) {
@@ -48,14 +48,17 @@ export function useDocumentMeta({ title, description, image, noindex = false, js
     if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
     canonical.href = url;
 
-    let script: HTMLScriptElement | null = null;
-    if (jsonKey) {
-      script = document.createElement("script");
+    // Substitui o JSON-LD da página que o servidor (api/render.js) já escreveu no HTML, sem duplicar.
+    document.head.querySelectorAll('script[type="application/ld+json"][data-page]').forEach((n) => n.remove());
+    const nodes: Record<string, unknown>[] = jsonKey ? (Array.isArray(JSON.parse(jsonKey)) ? JSON.parse(jsonKey) : [JSON.parse(jsonKey)]) : [];
+    const scripts = nodes.map((node) => {
+      const script = document.createElement("script");
       script.type = "application/ld+json";
       script.dataset.page = "true";
-      script.textContent = jsonKey;
+      script.textContent = JSON.stringify(node);
       document.head.appendChild(script);
-    }
-    return () => { script?.remove(); };
+      return script;
+    });
+    return () => { scripts.forEach((s) => s.remove()); };
   }, [title, description, image, noindex, pathname, jsonKey]);
 }
