@@ -1,6 +1,6 @@
 import type {
   CloudinarySignature,
-  AuthResponse, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
+  AuthResponse, ForgotPasswordResult, ResetCheckResult, ResetPasswordResult, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
   Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
   PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
@@ -97,7 +97,13 @@ export const api = {
       request<AuthResponse>("/auth/login", { method: "POST", body: payload }),
     register: (payload: { name: string; email: string; phone?: string; password: string; referralCode?: string }) =>
       request<AuthResponse>("/auth/register", { method: "POST", body: payload }),
-    me: (token: string) => request<AuthResponse["user"]>("/auth/me", { token })
+    me: (token: string) => request<AuthResponse["user"]>("/auth/me", { token }),
+    forgot: (email: string) =>
+      request<ForgotPasswordResult>("/auth/forgot-password", { method: "POST", body: { email } }),
+    checkReset: (token: string) =>
+      request<ResetCheckResult>("/auth/reset-password/check", { method: "POST", body: { token } }),
+    reset: (token: string, password: string) =>
+      request<ResetPasswordResult>("/auth/reset-password", { method: "POST", body: { token, password } })
   },
   users: {
     me: (token: string) => request<Me>("/users/me", { token }),

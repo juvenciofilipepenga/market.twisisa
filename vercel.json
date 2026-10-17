@@ -17,7 +17,7 @@
       "destination": "/api/render?type=category&slug=:slug"
     },
     {
-      "source": "/(carrinho|perfil|notificacoes|instalar|definicoes|mais|pedidos|convites|pesquisa|termos|privacidade|cookies|mapa-do-site|entrar|registar)",
+      "source": "/(carrinho|perfil|notificacoes|instalar|definicoes|mais|pedidos|convites|pesquisa|termos|privacidade|cookies|mapa-do-site|entrar|registar|recuperar|redefinir)",
       "destination": "/index.html"
     },
     {

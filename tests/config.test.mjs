@@ -44,7 +44,7 @@ test("seo.js: lista de rotas fixas coincide com o App.tsx", async () => {
 test("robots.txt: sitemap declarado no domínio oficial; privado bloqueado; público livre", () => {
   const r = read("public/robots.txt");
   assert.ok(r.includes("Sitemap: https://market.twisisa.site/sitemap.xml"));
-  for (const p of ["/admin", "/carrinho", "/perfil", "/entrar", "/registar", "/encomenda", "/pagamento"]) assert.ok(r.includes(`Disallow: ${p}`), p);
+  for (const p of ["/admin", "/carrinho", "/perfil", "/entrar", "/registar", "/recuperar", "/redefinir", "/encomenda", "/pagamento"]) assert.ok(r.includes(`Disallow: ${p}`), p);
   for (const p of ["/produto", "/categoria"]) assert.ok(!r.includes(`Disallow: ${p}`), p);
 });
 

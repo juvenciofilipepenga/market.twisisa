@@ -10,6 +10,8 @@ Disallow: /encomenda
 Disallow: /notificacoes
 Disallow: /entrar
 Disallow: /registar
+Disallow: /recuperar
+Disallow: /redefinir
 Disallow: /pagamento
 Disallow: /pedidos
 Disallow: /convites

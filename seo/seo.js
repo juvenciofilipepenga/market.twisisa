@@ -19,7 +19,7 @@ export const HOME_DESCRIPTION_EN =
 /** Caminhos que a aplicação React serve como página (ver src/App.tsx). Tudo o resto deve responder 404. */
 export const SPA_STATIC_PATHS = [
   "/", "/carrinho", "/perfil", "/notificacoes", "/instalar", "/definicoes", "/mais", "/pedidos", "/convites",
-  "/pesquisa", "/termos", "/privacidade", "/cookies", "/mapa-do-site", "/entrar", "/registar",
+  "/pesquisa", "/termos", "/privacidade", "/cookies", "/mapa-do-site", "/entrar", "/registar", "/recuperar", "/redefinir",
 ];
 /** Prefixos com um segmento dinâmico (/produto/:id, ...). */
 export const SPA_DYNAMIC_PREFIXES = ["/produto/", "/categoria/", "/encomenda/", "/notificacoes/", "/pagamento/"];

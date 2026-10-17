@@ -10,6 +10,28 @@ export function friendlyError(err: unknown, t: (key: string) => string): string 
   return t("common.error");
 }
 
+export type ResetBlock = "invalid" | "expired" | "used" | "restricted";
+
+export function resetBlockReason(err: unknown): ResetBlock | null {
+  if (!(err instanceof ApiError)) return null;
+  switch (err.code) {
+    case "INVALID_TOKEN": return "invalid";
+    case "TOKEN_EXPIRED": return "expired";
+    case "TOKEN_USED": return "used";
+    case "ACCOUNT_RESTRICTED": return "restricted";
+    default: return null;
+  }
+}
+
+export function recoverError(err: unknown, t: (key: string) => string): string {
+  if (err instanceof ApiError) {
+    if (err.status === 429) return t("common.tooMany");
+    if (err.status === 503) return t("recover.unavailable");
+  }
+  if (err instanceof TypeError) return t("catalog.error.network");
+  return t("common.error");
+}
+
 // Falha ao CARREGAR a lista de produtos: diz o que provavelmente aconteceu (sem ligação / servidor), em vez de um erro genérico.
 // O fetch lança TypeError quando não há rede; o servidor responde com ApiError (5xx).
 export function loadError(err: unknown, t: (key: string) => string): string {

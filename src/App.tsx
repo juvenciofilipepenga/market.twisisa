@@ -14,6 +14,8 @@ import PaymentPage from "./pages/PaymentPage";
 import ProfilePage from "./pages/ProfilePage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import NotificationPage from "./pages/NotificationPage";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -82,6 +84,8 @@ export default function App() {
                 <Route path="/entrar" element={<LoginPage />} />
                 <Route path="/pagamento/:orderId" element={<RequireAuth><PaymentPage /></RequireAuth>} />
                 <Route path="/registar" element={<RegisterPage />} />
+                <Route path="/recuperar" element={<ForgotPasswordPage />} />
+                <Route path="/redefinir" element={<ResetPasswordPage />} />
               </Route>
 
               <Route path="/admin/login" element={<AdminLoginPage />} />

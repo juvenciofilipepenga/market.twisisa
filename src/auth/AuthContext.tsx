@@ -12,6 +12,8 @@ interface AuthContextValue {
   isAdmin: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (name: string, email: string, password: string, phone?: string, referralCode?: string) => Promise<AuthUser>;
+  /** Abre sessão com um token já emitido pelo servidor (ex.: logo após redefinir a palavra-passe). */
+  acceptSession: (user: AuthUser, token: string) => void;
   logout: () => void;
 }
 
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(() => ({
     user, token, loading, verified,
     isAdmin: Boolean(user?.roles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN")),
-    login, register, logout
+    login, register, acceptSession: persist, logout
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, token, loading, verified, logout]);
 

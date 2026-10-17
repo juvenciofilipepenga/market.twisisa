@@ -42,6 +42,9 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="space-y-4" noValidate={false}>
         <Field label={t("auth.email")} required type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <PasswordField label={t("auth.password")} required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <div className="-mt-1 text-right">
+          <Link to={email ? `/recuperar?email=${encodeURIComponent(email)}` : "/recuperar"} className="text-sm font-semibold text-primary-text hover:text-ink">{t("recover.link")}</Link>
+        </div>
         {error && <p role="alert" className="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2.5 text-sm text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full" loading={loading}>{t("auth.submit")}</Button>
       </form>

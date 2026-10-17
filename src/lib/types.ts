@@ -96,6 +96,25 @@ export interface AuthUser {
   roles: Role[];
 }
 
+export interface ForgotPasswordResult {
+  ok: true;
+  cooldownSeconds?: number;
+  expiresMinutes?: number;
+}
+
+export interface ResetCheckResult {
+  valid: true;
+  email: string;
+  expiresAt: string;
+  serverNow?: string;
+}
+
+export interface ResetPasswordResult {
+  ok: true;
+  user: AuthUser;
+  accessToken: string | null;
+}
+
 export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
