@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "@/i18n/LocaleContext";
@@ -82,6 +83,7 @@ export function AvatarEditor({ name, photo, token, userId, onChange, fill = fals
     try {
       const saved = await saveAvatar(blob, token, userId);
       onChange(saved.url);
+
       setFile(null);
       toast.show(saved.where === "cloud" ? t("avatar.updated") : t("avatar.savedLocal"), { key: "avatar" });
     } catch {

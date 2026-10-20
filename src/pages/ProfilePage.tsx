@@ -118,7 +118,7 @@ export default function ProfilePage() {
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><UserIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Editar perfil</span>
             </button>
-            <Link to="/configuracoes" className="group flex min-w-0 flex-col items-center gap-2 text-center">
+            <Link to="/definicoes" className="group flex min-w-0 flex-col items-center gap-2 text-center">
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><SettingsIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Configuração</span>
             </Link>
