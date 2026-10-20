@@ -12,7 +12,7 @@ import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { AvatarEditor } from "@/components/profile/AvatarEditor";
-import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, SettingsIcon, UserIcon, CheckIcon, ShieldIcon } from "@/components/icons";
+import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, SettingsIcon, UserIcon, CheckIcon, ShieldIcon, WalletIcon, UserPlusIcon } from "@/components/icons";
 
 function MenuRow({ to, icon, title, detail, trailing }: { to: string; icon: ReactNode; title: string; detail?: string; trailing?: ReactNode }) {
   return (
@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [referral, setReferral] = useState<ReferralInfo | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [purchaseCount, setPurchaseCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -55,6 +56,7 @@ export default function ProfilePage() {
       setMe(data); setName(data.name); setPhone(data.phone ?? ""); setPhoto(data.avatarUrl ?? getLocalAvatar(data.id));
     }).catch(() => { /* 401 já é tratado globalmente */ });
     api.referrals.me(token).then(setReferral).catch(() => setReferral(null));
+    api.orders.list(token, { page: 1, limit: 1 }).then((result) => setPurchaseCount(result.pagination.total)).catch(() => setPurchaseCount(null));
   }, [token]);
 
   async function saveProfile() {
@@ -81,69 +83,76 @@ export default function ProfilePage() {
   const invited = referral?.invitedReferrals ?? (completed + (referral?.pendingReferrals ?? 0));
 
   return (
-    <main className="pb-8">
+    <main className="min-h-screen pb-8">
       <Header />
-      <div className="profile-enter mx-auto max-w-xl px-5 py-5 sm:px-6 sm:py-7">
+      <div className="profile-enter mx-auto max-w-xl px-4 py-5 sm:px-6 sm:py-7">
         <div className="mb-5">
           <p className="text-xs font-bold uppercase tracking-[.16em] text-primary-text">TWISISA MARKET</p>
-          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">{t("profile.title")}</h1>
-          <p className="mt-1 text-sm text-ink-muted">A sua conta e informações pessoais.</p>
+          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">A minha conta</h1>
+          <p className="mt-1 text-sm text-ink-muted">Gerencie o seu perfil, compras e benefícios.</p>
         </div>
 
-        {/* Identidade simples: sem capa nem cartão promocional a ocupar o ecrã. */}
-        <section className="flex items-center gap-4 border-b border-border pb-5">
-          <div className="h-20 w-20 shrink-0 pt-10">
-            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
+        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
+          <div className="flex items-center gap-4">
+            <div className="relative h-[76px] w-[76px] shrink-0">
+              {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-text"><CheckIcon width={12} height={12} /> Cliente Twisisa</span>
+              <h2 className="mt-2 break-words text-lg font-extrabold leading-tight">{me?.name ?? <Skeleton className="h-6 w-36" />}</h2>
+              <p className="mt-1 break-all text-sm text-ink-muted">{me?.email ?? "A carregar conta…"}</p>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-[.12em] text-primary-text"><CheckIcon width={13} height={13} /> Cliente Twisisa</span>
-            <h2 className="mt-1 break-words font-display text-xl font-extrabold leading-tight">{me?.name ?? <Skeleton className="mt-1 h-6 w-36" />}</h2>
-            <p className="mt-1 break-all text-sm text-ink-muted">{me?.email ?? "A carregar conta…"}</p>
-          </div>
-        </section>
-
-        <section className="mt-5">
-          <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Dados da conta</h2>
-          <div className="divide-y divide-border/80 rounded-xl border border-border bg-surface px-4">
-            <DetailRow label="Email" value={me?.email ?? "A carregar…"} />
-            <DetailRow label="Cliente desde" value={since ?? "—"} />
-            <div className="flex items-center justify-between gap-4 py-3.5">
-              <span className="text-sm text-ink-muted">Estado da conta</span>
-              <span className="inline-flex items-center gap-2 text-sm font-semibold"><span className="h-2 w-2 rounded-full bg-success" />Ativa</span>
+          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
+            <div className="rounded-xl bg-elevated p-3">
+              <span className="flex items-center gap-2 text-xs text-ink-muted"><BoxIcon width={16} height={16} /> Compras registadas</span>
+              <p className="mt-1 text-2xl font-extrabold">{purchaseCount === null ? "—" : purchaseCount}</p>
+            </div>
+            <div className="rounded-xl bg-elevated p-3">
+              <span className="flex items-center gap-2 text-xs text-ink-muted"><UserPlusIcon width={16} height={16} /> Convites concluídos</span>
+              <p className="mt-1 text-2xl font-extrabold">{referral ? completed : "—"}</p>
             </div>
           </div>
         </section>
 
         <section className="mt-5">
-          <h2 className="mb-2 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Acesso rápido</h2>
-          <div className="rounded-xl border border-border bg-surface px-4">
-            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Acompanhe entregas e consulte compras anteriores." />
-            <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Ver o seu convite.` : "Consulte o seu código e convide amigos."} />
-            <MenuRow to="/definicoes" icon={<SettingsIcon width={20} height={20} />} title="Definições" detail="Notificações e preferências da aplicação." />
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Benefícios e actividade</h2>
+          <div className="rounded-2xl border border-border bg-surface px-4">
+            <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Consulte o seu código de convite.` : "Partilhe o seu convite e acompanhe os resultados."} />
+            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Consulte compras anteriores e acompanhe entregas." trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
+            <div className="flex min-h-[70px] items-center gap-3 border-b border-border/80 py-3 last:border-b-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text"><WalletIcon width={20} height={20} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Pontos e créditos</span><span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">Benefícios para futuras compras e descontos.</span></span>
+              <span className="shrink-0 rounded-full bg-elevated px-2 py-1 text-[10px] font-bold text-ink-muted">Benefícios</span>
+            </div>
           </div>
         </section>
 
-        <section className="mt-5 overflow-hidden rounded-xl border border-border bg-surface">
-          <button type="button" aria-expanded={editing} onClick={() => setEditing((value) => !value)} className="press flex min-h-[66px] w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-elevated">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-elevated text-ink-muted"><UserIcon width={20} height={20} /></span>
-            <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Dados pessoais</span><span className="mt-0.5 block text-xs text-ink-muted">Nome e número de telefone</span></span>
-            <ChevronRightIcon width={19} height={19} className={`text-ink-faint transition-transform duration-200 ${editing ? "rotate-90" : ""}`} />
-          </button>
-          {editing && <div className="profile-expand border-t border-border px-4 py-4">
-            <div className="space-y-3">
-              <Field label={t("auth.name")} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-              <Field label={t("auth.email")} value={me?.email ?? ""} disabled readOnly />
-              <Field label={t("auth.phone")} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              <div className="flex gap-2 pt-1">
-                <Button variant="secondary" className="flex-1" onClick={() => { setName(me?.name ?? ""); setPhone(me?.phone ?? ""); setEditing(false); }}>Cancelar</Button>
-                <Button className="flex-1" onClick={saveProfile} disabled={!name.trim() || saving}>{saving ? "A guardar…" : t("common.save")}</Button>
-              </div>
+        <section className="mt-5">
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Conta e preferências</h2>
+          <div className="rounded-2xl border border-border bg-surface px-4">
+            <div className="divide-y divide-border/80">
+              <DetailRow label="Email" value={me?.email ?? "A carregar…"} />
+              <DetailRow label="Cliente desde" value={since ?? "—"} />
+              <div className="flex items-center justify-between gap-4 py-3.5"><span className="text-sm text-ink-muted">Estado da conta</span><span className="inline-flex items-center gap-2 text-sm font-semibold"><span className="h-2 w-2 rounded-full bg-success" />Ativa</span></div>
             </div>
-          </div>}
+            <div className="border-t border-border">
+              <button type="button" aria-expanded={editing} onClick={() => setEditing((value) => !value)} className="press flex min-h-[66px] w-full items-center gap-3 py-3 text-left transition-colors hover:bg-elevated">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-elevated text-ink-muted"><UserIcon width={20} height={20} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Dados pessoais</span><span className="mt-0.5 block text-xs text-ink-muted">Nome e número de telefone</span></span>
+                <ChevronRightIcon width={19} height={19} className={`text-ink-faint transition-transform duration-200 ${editing ? "rotate-90" : ""}`} />
+              </button>
+              {editing && <div className="profile-expand border-t border-border py-4"><div className="space-y-3">
+                <Field label={t("auth.name")} autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+                <Field label={t("auth.email")} value={me?.email ?? ""} disabled readOnly />
+                <Field label={t("auth.phone")} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <div className="flex gap-2 pt-1"><Button variant="secondary" className="flex-1" onClick={() => { setName(me?.name ?? ""); setPhone(me?.phone ?? ""); setEditing(false); }}>Cancelar</Button><Button className="flex-1" onClick={saveProfile} disabled={!name.trim() || saving}>{saving ? "A guardar…" : t("common.save")}</Button></div>
+              </div></div>}
+            </div>
+          </div>
         </section>
 
         {isAdmin && <div className="mt-4"><Link to="/admin" className="press flex min-h-12 items-center gap-3 rounded-xl border border-primary/25 px-4 text-sm font-semibold text-primary-text transition-colors hover:bg-primary-soft"><ShieldIcon width={18} height={18} /><span className="flex-1">Área de administração</span><ChevronRightIcon width={18} height={18} /></Link></div>}
-
         <button type="button" onClick={onLogout} className="press mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold text-danger transition-colors hover:bg-danger/10"><LogOutIcon width={18} height={18} />{t("profile.logout")}</button>
       </div>
     </main>
