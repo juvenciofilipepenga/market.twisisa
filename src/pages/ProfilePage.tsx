@@ -88,8 +88,8 @@ export default function ProfilePage() {
       <div className="profile-enter mx-auto max-w-xl px-4 pb-5 pt-7 sm:px-6 sm:py-8">
         {/* Cabeçalho do perfil: composição centrada, inspirada na referência. */}
         <section className="flex flex-col items-center px-2 pb-7 pt-1 text-center">
-          <div className="relative mb-4 h-28 w-28 shrink-0 overflow-hidden rounded-full bg-elevated ring-4 ring-surface shadow-sm sm:h-32 sm:w-32">
-            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
+          <div className="relative mb-4 h-28 w-28 shrink-0 sm:h-32 sm:w-32">
+            {token && <AvatarEditor fill name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
           </div>
           <h1 className="max-w-full break-words text-center text-2xl font-bold tracking-tight sm:text-[28px]">
             {me?.name ?? <Skeleton className="mx-auto h-8 w-40" />}
