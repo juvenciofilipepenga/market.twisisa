@@ -124,22 +124,10 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section id="profile-benefits" className="mt-2 scroll-mt-24">
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Benefícios e actividade</h2>
+        <section className="mt-5">
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Conta e referências</h2>
           <div className="rounded-2xl border border-border bg-surface px-4">
             <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Consulte o seu código de convite.` : "Partilhe o seu convite e acompanhe os resultados."} />
-            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Consulte compras anteriores e acompanhe entregas." trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
-            <div className="flex min-h-[70px] items-center gap-3 border-b border-border/80 py-3 last:border-b-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text"><WalletIcon width={20} height={20} /></span>
-              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Pontos e créditos</span><span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">Benefícios para futuras compras e descontos.</span></span>
-              <span className="shrink-0 rounded-full bg-elevated px-2 py-1 text-[10px] font-bold text-ink-muted">Benefícios</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="mt-5">
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Conta e preferências</h2>
-          <div className="rounded-2xl border border-border bg-surface px-4">
             <div className="divide-y divide-border/80">
               <DetailRow label="Email" value={me?.email ?? "A carregar…"} />
               <DetailRow label="Cliente desde" value={since ?? "—"} />
@@ -157,6 +145,18 @@ export default function ProfilePage() {
                 <Field label={t("auth.phone")} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
                 <div className="flex gap-2 pt-1"><Button variant="secondary" className="flex-1" onClick={() => { setName(me?.name ?? ""); setPhone(me?.phone ?? ""); setEditing(false); }}>Cancelar</Button><Button className="flex-1" onClick={saveProfile} disabled={!name.trim() || saving}>{saving ? "A guardar…" : t("common.save")}</Button></div>
               </div></div>}
+            </div>
+          </div>
+        </section>
+
+        <section id="profile-benefits" className="mt-2 scroll-mt-24">
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Benefícios e actividade</h2>
+          <div className="rounded-2xl border border-border bg-surface px-4">
+            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Consulte compras anteriores e acompanhe entregas." trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
+            <div className="flex min-h-[70px] items-center gap-3 border-b border-border/80 py-3 last:border-b-0">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text"><WalletIcon width={20} height={20} /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Pontos e créditos</span><span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">Benefícios para futuras compras e descontos.</span></span>
+              <span className="shrink-0 rounded-full bg-elevated px-2 py-1 text-[10px] font-bold text-ink-muted">Benefícios</span>
             </div>
           </div>
         </section>
