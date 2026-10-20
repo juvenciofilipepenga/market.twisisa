@@ -12,7 +12,7 @@ import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { AvatarEditor } from "@/components/profile/AvatarEditor";
-import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, SettingsIcon, UserIcon, CheckIcon, ShieldIcon, WalletIcon, UserPlusIcon } from "@/components/icons";
+import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, UserIcon, ShieldIcon, WalletIcon, UserPlusIcon } from "@/components/icons";
 
 function MenuRow({ to, icon, title, detail, trailing }: { to: string; icon: ReactNode; title: string; detail?: string; trailing?: ReactNode }) {
   return (
@@ -78,6 +78,10 @@ export default function ProfilePage() {
     navigate("/", { replace: true });
   }
 
+  function scrollToBenefits() {
+    document.getElementById("profile-benefits")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   const since = me ? new Intl.DateTimeFormat(locale === "pt" ? "pt-PT" : "en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(me.createdAt)) : null;
   const completed = referral?.completedReferrals ?? 0;
   const invited = referral?.invitedReferrals ?? (completed + (referral?.pendingReferrals ?? 0));
@@ -85,37 +89,42 @@ export default function ProfilePage() {
   return (
     <main className="min-h-screen pb-8">
       <Header />
-      <div className="profile-enter mx-auto max-w-xl px-4 py-5 sm:px-6 sm:py-7">
-        <div className="mb-5">
-          <p className="text-xs font-bold uppercase tracking-[.16em] text-primary-text">TWISISA MARKET</p>
-          <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">A minha conta</h1>
-          <p className="mt-1 text-sm text-ink-muted">Gerencie o seu perfil, compras e benefícios.</p>
-        </div>
-
-        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5">
-          <div className="flex items-center gap-4">
-            <div className="relative h-[76px] w-[76px] shrink-0">
-              {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary-text"><CheckIcon width={12} height={12} /> Cliente Twisisa</span>
-              <h2 className="mt-2 break-words text-lg font-extrabold leading-tight">{me?.name ?? <Skeleton className="h-6 w-36" />}</h2>
-              <p className="mt-1 break-all text-sm text-ink-muted">{me?.email ?? "A carregar conta…"}</p>
-            </div>
+      <div className="profile-enter mx-auto max-w-xl px-4 pb-5 pt-7 sm:px-6 sm:py-8">
+        {/* Cabeçalho do perfil: composição centrada, inspirada na referência. */}
+        <section className="flex flex-col items-center px-2 pb-7 pt-1 text-center">
+          <div className="relative mb-4 h-28 w-28 shrink-0 overflow-hidden rounded-full bg-elevated ring-4 ring-surface shadow-sm sm:h-32 sm:w-32">
+            {token && <AvatarEditor name={me?.name ?? ""} photo={photo} token={token} userId={me?.id ?? ""} onChange={setPhoto} />}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
-            <div className="rounded-xl bg-elevated p-3">
-              <span className="flex items-center gap-2 text-xs text-ink-muted"><BoxIcon width={16} height={16} /> Compras registadas</span>
-              <p className="mt-1 text-2xl font-extrabold">{purchaseCount === null ? "—" : purchaseCount}</p>
-            </div>
-            <div className="rounded-xl bg-elevated p-3">
-              <span className="flex items-center gap-2 text-xs text-ink-muted"><UserPlusIcon width={16} height={16} /> Convites concluídos</span>
-              <p className="mt-1 text-2xl font-extrabold">{referral ? completed : "—"}</p>
-            </div>
+          <h1 className="max-w-full break-words text-center text-2xl font-bold tracking-tight sm:text-[28px]">
+            {me?.name ?? <Skeleton className="mx-auto h-8 w-40" />}
+          </h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            {since ? `Cliente desde ${since}` : "A carregar perfil…"}
+            {purchaseCount !== null && <span> · {purchaseCount} {purchaseCount === 1 ? "compra" : "compras"}</span>}
+          </p>
+
+          {/* Acções úteis para clientes, no lugar de seguir/reenviar do canal. */}
+          <div className="mt-6 grid w-full max-w-md grid-cols-4 gap-2 sm:gap-4">
+            <Link to="/pedidos" className="group flex min-w-0 flex-col items-center gap-2 text-center">
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><BoxIcon width={24} height={24} /></span>
+              <span className="text-xs font-medium leading-tight">Encomendas</span>
+            </Link>
+            <Link to="/convites" className="group flex min-w-0 flex-col items-center gap-2 text-center">
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><UserPlusIcon width={24} height={24} /></span>
+              <span className="text-xs font-medium leading-tight">Convites</span>
+            </Link>
+            <button type="button" onClick={() => setEditing(true)} className="group flex min-w-0 flex-col items-center gap-2 text-center">
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><UserIcon width={24} height={24} /></span>
+              <span className="text-xs font-medium leading-tight">Editar perfil</span>
+            </button>
+            <button type="button" onClick={scrollToBenefits} className="group flex min-w-0 flex-col items-center gap-2 text-center">
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><WalletIcon width={24} height={24} /></span>
+              <span className="text-xs font-medium leading-tight">Benefícios</span>
+            </button>
           </div>
         </section>
 
-        <section className="mt-5">
+        <section id="profile-benefits" className="mt-2 scroll-mt-24">
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Benefícios e actividade</h2>
           <div className="rounded-2xl border border-border bg-surface px-4">
             <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Consulte o seu código de convite.` : "Partilhe o seu convite e acompanhe os resultados."} />
