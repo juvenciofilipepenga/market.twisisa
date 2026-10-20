@@ -21,7 +21,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast, useBottomBarOffset } from "@/components/ui/Toast";
-import { BoxIcon, CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon } from "@/components/icons";
+import { BoxIcon, CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon, XIcon } from "@/components/icons";
 
 const LOW_STOCK = 5;
 type State = { kind: "loading" } | { kind: "error" } | { kind: "not-found" } | { kind: "ready"; product: Product };
@@ -105,7 +105,12 @@ export default function ProductPage() {
     try {
       await api.reviews.create(id, token, { rating: reviewRating, comment: reviewComment.trim() || undefined });
       setReviews(await api.reviews.list(id)); setReviewComment(""); setReviewOpen(false); toast.show(t("product.review.sent"), { key: "review-sent" });
-    } catch (err) { setReviewMessage(err instanceof Error ? err.message : "Não foi possível enviar a avaliação."); }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setReviewMessage(message.includes("PURCHASE_REQUIRED")
+        ? "Para avaliar este produto, precisa de ter uma compra registada na sua conta."
+        : message || "Não foi possível enviar a avaliação. Tente novamente.");
+    }
   }
 
   function goBack() {
@@ -246,17 +251,31 @@ export default function ProductPage() {
                 <Button variant="secondary" className="mt-4 w-full" onClick={() => { setReviewMessage(null); setReviewOpen(true); }}>{t("product.review.write")}</Button>
                 {reviewOpen && (
                   <Modal title={t("product.review.title")} size="sm" onClose={() => setReviewOpen(false)}>
-                    <p className="text-sm text-ink-muted">{t("product.review.hint")}</p>
-                    <div className="mt-3 flex gap-1" role="radiogroup" aria-label={t("product.review.rating")}>
-                      {[1, 2, 3, 4, 5].map((n) => (
-                        <button key={n} type="button" role="radio" aria-checked={n === reviewRating} onClick={() => setReviewRating(n)} className={`press flex h-11 w-11 items-center justify-center text-2xl ${n <= reviewRating ? "text-primary" : "text-ink-faint"}`} aria-label={`${n} ${t("product.review.stars")}`}>★</button>
-                      ))}
-                    </div>
-                    <textarea value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={4} maxLength={1000} placeholder={t("product.review.comment")} className="mt-3 w-full rounded-xl border border-border bg-elevated px-3 py-2.5 text-base focus:border-primary focus:outline-none sm:text-sm" />
-                    {reviewMessage && <p role="status" className="mt-2 text-sm text-ink-muted">{reviewMessage}</p>}
-                    <div className="mt-4 flex gap-2">
-                      <Button variant="secondary" className="flex-1" onClick={() => setReviewOpen(false)}>{t("common.cancel")}</Button>
-                      <Button className="flex-1" onClick={async () => { await submitReview(); }}>{t("product.review.send")}</Button>
+                    <div className="space-y-5">
+                      <div className="rounded-2xl border border-border bg-elevated/70 p-4">
+                        <p className="text-sm leading-relaxed text-ink-muted">{t("product.review.hint")}</p>
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold">{t("product.review.rating")}</span>
+                          <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">{reviewRating}/5</span>
+                        </div>
+                        <div className="mt-3 grid grid-cols-5 gap-2" role="radiogroup" aria-label={t("product.review.rating")}>
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <button key={n} type="button" role="radio" aria-checked={n === reviewRating} onClick={() => { setReviewRating(n); setReviewMessage(null); }} className={`press flex aspect-square min-w-0 items-center justify-center rounded-2xl border text-2xl transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${n <= reviewRating ? "border-primary bg-primary/10 text-primary shadow-sm" : "border-border bg-surface text-ink-faint hover:border-primary/50 hover:bg-elevated"}`} aria-label={`${n} ${t("product.review.stars")}`}>
+                              <span aria-hidden="true">★</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="product-review-comment" className="mb-2 block text-sm font-semibold">{t("product.review.comment")}</label>
+                        <textarea id="product-review-comment" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} rows={4} maxLength={1000} placeholder="Conte-nos a sua experiência com este produto…" className="w-full resize-y rounded-2xl border border-border bg-surface px-4 py-3 text-base leading-relaxed outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:text-sm" />
+                        <p className="mt-1 text-right text-xs text-ink-faint">{reviewComment.length}/1000</p>
+                      </div>
+                      {reviewMessage && <p role="status" className="rounded-xl border border-danger/20 bg-danger/5 px-3 py-2.5 text-sm leading-relaxed text-danger">{reviewMessage}</p>}
+                      <div className="flex gap-2 border-t border-border pt-4">
+                        <Button variant="secondary" className="flex-1 rounded-xl" icon={<XIcon width={17} height={17} />} onClick={() => setReviewOpen(false)}>{t("common.cancel")}</Button>
+                        <Button className="flex-1 rounded-xl" icon={<CheckIcon width={17} height={17} />} onClick={async () => { await submitReview(); }}>{t("product.review.send")}</Button>
+                      </div>
                     </div>
                   </Modal>
                 )}
