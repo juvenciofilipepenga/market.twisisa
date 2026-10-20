@@ -17,6 +17,7 @@ export function getSocket(token: string): Socket {
   // Reutiliza a ligação enquanto estiver activa (a ligar OU ligada): recriá-la a meio de uma ligação em curso
   // deitaria fora os listeners que outros ecrãs já tinham registado.
   if (socket && (socket.active || !SOCKET_ENABLED)) return socket;
+  if (!SOCKET_ENABLED) return null as unknown as Socket;
   if (socket) socket.disconnect();
   socket = io(SOCKET_URL, {
     auth: { token },
