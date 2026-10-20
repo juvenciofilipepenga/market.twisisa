@@ -27,7 +27,7 @@ export default function AdminChatAiPage() {
   const [toDelete, setToDelete] = useState<ChatKnowledgeEntry | null>(null);
   const [testText, setTestText] = useState("");
   const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{ reply: string | null; escalate: boolean; usedKnowledge: string[] } | null>(null);
+  const [testResult, setTestResult] = useState<{ reply: string | null; escalate: boolean; usedKnowledge: string[]; failure: string | null } | null>(null);
   const [testError, setTestError] = useState(false);
 
   const load = useCallback(async () => {
@@ -175,6 +175,7 @@ export default function AdminChatAiPage() {
         {testResult && (
           <div className="space-y-2 rounded-xl border border-border bg-elevated p-3 text-sm" aria-live="polite">
             <p className="whitespace-pre-line">{testResult.reply ?? "(sem resposta)"}</p>
+            {testResult.failure && <p role="alert" className="text-xs text-danger">{testResult.failure}</p>}
             {testResult.escalate && <p className="text-xs text-warning">Neste caso a IA passaria a conversa à equipa.</p>}
             {testResult.usedKnowledge.length > 0 && <p className="text-xs text-ink-muted">Conhecimento usado: {testResult.usedKnowledge.join(" · ")}</p>}
           </div>

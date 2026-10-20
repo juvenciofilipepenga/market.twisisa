@@ -307,7 +307,7 @@ export const api = {
         deleteKnowledge: (token: string, id: string) =>
           request<void>(`/admin/chat/ai/knowledge/${id}`, { method: "DELETE", token }),
         test: (token: string, message: string) =>
-          request<{ reply: string | null; escalate: boolean; usedKnowledge: string[]; groqConfigured: boolean }>("/admin/chat/ai/test", { method: "POST", body: { message }, token })
+          request<{ reply: string | null; escalate: boolean; usedKnowledge: string[]; failure: string | null; groqConfigured: boolean }>("/admin/chat/ai/test", { method: "POST", body: { message }, token })
       }
     }
   }

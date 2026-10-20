@@ -13,11 +13,22 @@ let socket: Socket | null = null;
 // persistente definindo VITE_ENABLE_SOCKET=true.
 const SOCKET_ENABLED = import.meta.env.VITE_ENABLE_SOCKET === "true";
 
+// Com o tempo real desligado devolve-se um socket "inerte" em vez de null: o painel, o chat e as estatísticas chamam
+// getSocket(token).on(...) / .connected sem verificar, e com null davam erro ao abrir o ecrã.
+const offlineSocket = {
+  connected: false,
+  active: false,
+  on() { return offlineSocket; },
+  off() { return offlineSocket; },
+  emit() { return offlineSocket; },
+  disconnect() { return offlineSocket; },
+} as unknown as Socket;
+
 export function getSocket(token: string): Socket {
+  if (!SOCKET_ENABLED) return offlineSocket;
   // Reutiliza a ligação enquanto estiver activa (a ligar OU ligada): recriá-la a meio de uma ligação em curso
   // deitaria fora os listeners que outros ecrãs já tinham registado.
-  if (socket && (socket.active || !SOCKET_ENABLED)) return socket;
-  if (!SOCKET_ENABLED) return null as unknown as Socket;
+  if (socket && socket.active) return socket;
   if (socket) socket.disconnect();
   socket = io(SOCKET_URL, {
     auth: { token },
