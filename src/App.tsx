@@ -46,6 +46,7 @@ import { CartReconciler } from "./cart/CartReconciler";
 
 const ChatWidget = lazy(() => import("./components/chat/ChatWidget"));
 const AdminChatPage = lazy(() => import("./pages/admin/AdminChatPage"));
+const AdminChatAiPage = lazy(() => import("./pages/admin/AdminChatAiPage"));
 
 export default function App() {
   return (
@@ -102,6 +103,14 @@ export default function App() {
                   element={
                     <ErrorBoundary>
                       <Suspense fallback={null}><AdminChatPage /></Suspense>
+                    </ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="chat/ia"
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={null}><AdminChatAiPage /></Suspense>
                     </ErrorBoundary>
                   }
                 />

@@ -13,7 +13,7 @@ export function getSocket(token: string): Socket {
   // deitaria fora os listeners que outros ecrãs já tinham registado.
   if (socket && socket.active) return socket;
   if (socket) socket.disconnect();
-  socket = io(SOCKET_URL, { auth: { token }, transports: ["websocket", "polling"] });
+  socket = io(SOCKET_URL, { auth: { token }, transports: ["websocket", "polling"], reconnectionDelayMax: 30_000 });
   return socket;
 }
 

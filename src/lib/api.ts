@@ -1,7 +1,7 @@
 import type {
   CloudinarySignature,
   AuthResponse, ForgotPasswordResult, ResetCheckResult, ResetPasswordResult, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatMenuOption, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatSync, ChatAiSettings, ChatKnowledgeEntry, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
   PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
 import type { ImportRow } from "./productCsv";
@@ -162,19 +162,29 @@ export const api = {
   },
   chat: {
     open: (token: string) =>
-      request<{ conversation: Conversation; messages: ChatMessage[]; menu: ChatMenuOption[] }>("/chat/conversations", { method: "POST", token }),
+      request<{ conversation: Conversation; messages: ChatMessage[]; assistantName: string; aiEnabled: boolean }>("/chat/conversations", { method: "POST", token }),
     listConversations: (token: string) => request<{ data: Conversation[] }>("/chat/conversations", { token }),
     getMessages: (id: string, token: string) =>
       request<{ conversation: Conversation; messages: ChatMessage[] }>(`/chat/conversations/${id}/messages`, { token }),
-    sendMessage: (id: string, token: string, content?: string, file?: File) => {
-      if (file) {
+    sync: (id: string, token: string, since?: string | null) =>
+      request<ChatSync>(`/chat/conversations/${id}/sync${qs({ since: since ?? undefined })}`, { token }),
+    // Só grava e responde já; a resposta da IA vem de aiReply (para o cliente ver "enviado" sem esperar pelo Groq).
+    sendMessage: (id: string, token: string, input: { clientId: string; content?: string; file?: File }) => {
+      if (input.file) {
         const form = new FormData();
-        if (content) form.append("content", content);
-        form.append("file", file);
-        return request<{ message: ChatMessage; botMessage?: ChatMessage }>(`/chat/conversations/${id}/messages`, { method: "POST", body: form, token, isForm: true });
+        form.append("clientId", input.clientId);
+        if (input.content) form.append("content", input.content);
+        form.append("file", input.file);
+        return request<{ message: ChatMessage; aiPending: boolean }>(`/chat/conversations/${id}/messages`, { method: "POST", body: form, token, isForm: true });
       }
-      return request<{ message: ChatMessage; botMessage?: ChatMessage }>(`/chat/conversations/${id}/messages`, { method: "POST", body: { content }, token });
-    }
+      return request<{ message: ChatMessage; aiPending: boolean }>(`/chat/conversations/${id}/messages`, { method: "POST", body: { content: input.content, clientId: input.clientId }, token });
+    },
+    aiReply: (id: string, token: string, afterMessageId: string) =>
+      request<{ botMessage: ChatMessage | null; escalated: boolean }>(`/chat/conversations/${id}/ai-reply`, { method: "POST", body: { afterMessageId }, token }),
+    typing: (id: string, token: string, isTyping: boolean) =>
+      request<void>(`/chat/conversations/${id}/typing`, { method: "POST", body: { isTyping }, token }),
+    markRead: (id: string, token: string) =>
+      request<{ updated: number }>(`/chat/conversations/${id}/read`, { method: "POST", token })
   },
   media: {
     // POST multipart com um campo "file"; devolve { url, publicId } prontos para
@@ -265,18 +275,40 @@ export const api = {
     chat: {
       list: (token: string, params: { status?: string; page?: number; limit?: number } = {}) =>
         request<PaginatedResponse<Conversation>>(`/admin/chat/conversations${qs(params)}`, { token }),
-      reply: (token: string, id: string, content?: string, file?: File) => {
-        if (file) {
+      sync: (token: string, id: string, since?: string | null) =>
+        request<ChatSync>(`/admin/chat/conversations/${id}/sync${qs({ since: since ?? undefined })}`, { token }),
+      reply: (token: string, id: string, input: { clientId: string; content?: string; file?: File }) => {
+        if (input.file) {
           const form = new FormData();
-          if (content) form.append("content", content);
-          form.append("file", file);
+          form.append("clientId", input.clientId);
+          if (input.content) form.append("content", input.content);
+          form.append("file", input.file);
           return request<{ message: ChatMessage }>(`/admin/chat/conversations/${id}/reply`, { method: "POST", body: form, token, isForm: true });
         }
-        return request<{ message: ChatMessage }>(`/admin/chat/conversations/${id}/reply`, { method: "POST", body: { content }, token });
+        return request<{ message: ChatMessage }>(`/admin/chat/conversations/${id}/reply`, { method: "POST", body: { content: input.content, clientId: input.clientId }, token });
       },
+      typing: (token: string, id: string, isTyping: boolean) =>
+        request<void>(`/admin/chat/conversations/${id}/typing`, { method: "POST", body: { isTyping }, token }),
+      markRead: (token: string, id: string) =>
+        request<{ updated: number }>(`/admin/chat/conversations/${id}/read`, { method: "POST", token }),
+      aiResume: (token: string, id: string) =>
+        request<{ id: string; status: string }>(`/admin/chat/conversations/${id}/ai-resume`, { method: "POST", token }),
       close: (token: string, id: string) => request<Conversation>(`/admin/chat/conversations/${id}/close`, { method: "POST", token }),
-      messages: (id: string, token: string) =>
-        request<{ conversation: Conversation; messages: ChatMessage[] }>(`/chat/conversations/${id}/messages`, { token })
+      ai: {
+        settings: (token: string) =>
+          request<{ settings: ChatAiSettings; groqConfigured: boolean; knowledgeCount: number }>("/admin/chat/ai/settings", { token }),
+        saveSettings: (token: string, settings: ChatAiSettings) =>
+          request<{ settings: ChatAiSettings }>("/admin/chat/ai/settings", { method: "PUT", body: settings, token }),
+        knowledge: (token: string) => request<{ data: ChatKnowledgeEntry[] }>("/admin/chat/ai/knowledge", { token }),
+        addKnowledge: (token: string, input: { title: string; content: string; active?: boolean }) =>
+          request<{ entry: ChatKnowledgeEntry }>("/admin/chat/ai/knowledge", { method: "POST", body: input, token }),
+        updateKnowledge: (token: string, id: string, input: { title?: string; content?: string; active?: boolean }) =>
+          request<{ entry: ChatKnowledgeEntry }>(`/admin/chat/ai/knowledge/${id}`, { method: "PATCH", body: input, token }),
+        deleteKnowledge: (token: string, id: string) =>
+          request<void>(`/admin/chat/ai/knowledge/${id}`, { method: "DELETE", token }),
+        test: (token: string, message: string) =>
+          request<{ reply: string | null; escalate: boolean; usedKnowledge: string[]; groqConfigured: boolean }>("/admin/chat/ai/test", { method: "POST", body: { message }, token })
+      }
     }
   }
 };

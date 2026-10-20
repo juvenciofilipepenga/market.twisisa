@@ -285,6 +285,10 @@ export interface ChatMessage {
   senderType: ChatSenderType;
   senderId: string | null;
   content: string | null;
+  /** Id gerado no browser no momento do envio: liga a mensagem local "pendente" à gravada no servidor. */
+  clientId?: string | null;
+  /** Quando o outro lado viu a mensagem; null = ainda não viu. */
+  readAt?: string | null;
   createdAt: string;
   attachments?: ChatAttachment[];
 }
@@ -298,6 +302,35 @@ export interface Conversation {
   createdAt: string;
   updatedAt: string;
   user?: { id: string; name: string; email: string; phone: string | null };
+  /** Só na lista do admin. */
+  lastMessagePreview?: string | null;
+  lastMessageSender?: ChatSenderType | null;
+  unreadCount?: number;
+  customerOnline?: boolean;
+}
+
+/** Resposta de GET .../sync: mensagens novas ou vistas desde `since`, "a escrever" e presença do outro lado. */
+export interface ChatSync {
+  serverTime: string;
+  conversation: { id: string; status: ConversationStatus; lastMessageAt: string };
+  messages: ChatMessage[];
+  typing: boolean;
+  peerOnline: boolean;
+}
+
+export interface ChatAiSettings {
+  enabled: boolean;
+  assistantName: string;
+  instructions: string;
+}
+
+export interface ChatKnowledgeEntry {
+  id: string;
+  title: string;
+  content: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ChatMenuOption {
