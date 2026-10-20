@@ -6,13 +6,22 @@ import { useDocumentMeta } from "@/lib/useDocumentMeta";
 import { useAuth } from "@/auth/AuthContext";
 import { api } from "@/lib/api";
 import { getLocalAvatar } from "@/lib/avatar";
-import type { Me, ReferralInfo } from "@/lib/types";
+import type { Me } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { AvatarEditor } from "@/components/profile/AvatarEditor";
 import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, UserIcon, ShieldIcon, UserPlusIcon } from "@/components/icons";
+
+function SettingsIcon({ width = 24, height = 24 }: { width?: number; height?: number }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
 
 function MenuRow({ to, icon, title, detail, trailing }: { to: string; icon: ReactNode; title: string; detail?: string; trailing?: ReactNode }) {
   return (
@@ -45,7 +54,6 @@ export default function ProfilePage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [referral, setReferral] = useState<ReferralInfo | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [purchaseCount, setPurchaseCount] = useState<number | null>(null);
@@ -55,7 +63,6 @@ export default function ProfilePage() {
     api.users.me(token).then((data) => {
       setMe(data); setName(data.name); setPhone(data.phone ?? ""); setPhoto(data.avatarUrl ?? getLocalAvatar(data.id));
     }).catch(() => { /* 401 já é tratado globalmente */ });
-    api.referrals.me(token).then(setReferral).catch(() => setReferral(null));
     api.orders.list(token, { page: 1, limit: 1 }).then((result) => setPurchaseCount(result.pagination.total)).catch(() => setPurchaseCount(null));
   }, [token]);
 
@@ -79,8 +86,6 @@ export default function ProfilePage() {
   }
 
   const since = me ? new Intl.DateTimeFormat(locale === "pt" ? "pt-PT" : "en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(me.createdAt)) : null;
-  const completed = referral?.completedReferrals ?? 0;
-  const invited = referral?.invitedReferrals ?? (completed + (referral?.pendingReferrals ?? 0));
 
   return (
     <main className="min-h-screen pb-8">
@@ -100,7 +105,7 @@ export default function ProfilePage() {
           </p>
 
           {/* Acções úteis para clientes, no lugar de seguir/reenviar do canal. */}
-          <div className="mt-6 grid w-full max-w-sm grid-cols-3 gap-2 sm:gap-4">
+          <div className="mt-6 grid w-full max-w-md grid-cols-4 gap-2 sm:gap-4">
             <Link to="/pedidos" className="group flex min-w-0 flex-col items-center gap-2 text-center">
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><BoxIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Encomendas</span>
@@ -113,13 +118,17 @@ export default function ProfilePage() {
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><UserIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Editar perfil</span>
             </button>
+            <Link to="/configuracoes" className="group flex min-w-0 flex-col items-center gap-2 text-center">
+              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><SettingsIcon width={24} height={24} /></span>
+              <span className="text-xs font-medium leading-tight">Configuração</span>
+            </Link>
           </div>
         </section>
 
         <section className="mt-5">
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Conta e referências</h2>
           <div className="rounded-2xl border border-border bg-surface px-4">
-            <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" detail={referral ? `${completed} compras concluídas${invited > completed ? ` · ${invited - completed} por concluir` : ""}. Consulte o seu código de convite.` : "Partilhe o seu convite e acompanhe os resultados."} />
+            <MenuRow to="/convites" icon={<GiftIcon width={20} height={20} />} title="Convide e ganhe" />
             <div className="divide-y divide-border/80">
               <DetailRow label="Email" value={me?.email ?? "A carregar…"} />
               <DetailRow label="Cliente desde" value={since ?? "—"} />
@@ -144,7 +153,7 @@ export default function ProfilePage() {
         <section className="mt-2">
           <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Actividade</h2>
           <div className="rounded-2xl border border-border bg-surface px-4">
-            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Consulte compras anteriores e acompanhe entregas." trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
+            <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
           </div>
         </section>
 
