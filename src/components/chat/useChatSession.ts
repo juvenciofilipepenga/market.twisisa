@@ -13,8 +13,8 @@ export type LocalMessage = ChatMessage & {
   localFile?: File;
 };
 
-// Sem Socket.IO (ex.: backend em Vercel) a sincronização por pedidos é a base; com Socket.IO ligado o servidor avisa e
-// o pedido de segurança abranda. O socket nunca entrega dados: só manda sincronizar já, por isso não há duas fontes de verdade.
+// Na implantação Vercel, a sincronização HTTP é a base. Se Socket.IO estiver explicitamente activo num servidor persistente,
+// apenas acelera a sincronização; os dados continuam a vir da API HTTP.
 const POLL_MS_SOCKET_DOWN = 2500;
 const POLL_MS_SOCKET_UP = 15_000;
 const TYPING_REFRESH_MS = 2500;

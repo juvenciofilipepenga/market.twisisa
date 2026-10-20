@@ -6,9 +6,8 @@ import type { AdminStats } from "./types";
 export type StatsRange = 7 | 14 | 30 | 90;
 const POLL_MS = 30_000;
 
-// Estatísticas do painel "em tempo real": o backend avisa por Socket.IO (dashboard.activity / admin.alert) sempre que
-// há actividade (venda, pagamento, mensagem) e o painel volta a pedir os números (com 0,8 s de espera para juntar
-// avisos seguidos). Se o Socket.IO falhar, uma consulta a cada 30 s garante que os números nunca ficam parados.
+// As estatísticas são actualizadas por HTTP a cada 30 s. Num servidor persistente com Socket.IO explicitamente activo,
+// os eventos dashboard.activity/admin.alert também aceleram a actualização.
 export function useAdminStats(token: string | null, days: StatsRange) {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [error, setError] = useState(false);
