@@ -15,11 +15,19 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1]?.[0] ?? "" : "")).toUpperCase() || "?";
 }
 
-interface Props { name: string; photo: string | null; token: string; userId: string; onChange: (photo: string | null) => void }
+interface Props {
+  name: string;
+  photo: string | null;
+  token: string;
+  userId: string;
+  onChange: (photo: string | null) => void;
+  /** Preenche o contentor do pai (ex.: página de perfil). Sem isto mantém o tamanho fixo de 80px. */
+  fill?: boolean;
+}
 
 // Avatar com botão de câmara e um menu pequeno: Câmara | Galeria (| Remover, se já houver foto).
 // Câmara abre a câmara frontal no telemóvel (no computador abre o seletor de ficheiros).
-export function AvatarEditor({ name, photo, token, userId, onChange }: Props) {
+export function AvatarEditor({ name, photo, token, userId, onChange, fill = false }: Props) {
   const { t } = useLocale();
   const toast = useToast();
   const [menu, setMenu] = useState<{ top: number; left: number } | null>(null);
@@ -92,13 +100,21 @@ export function AvatarEditor({ name, photo, token, userId, onChange }: Props) {
     }
   }
 
-  const src = photo && !broken ? avatarSrc(photo, 80) : null;
+  const imgSize = fill ? 256 : 80;
+  const src = photo && !broken ? avatarSrc(photo, imgSize) : null;
   const item = "press flex min-h-[44px] w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-medium text-ink hover:bg-surface";
 
+  // fill: o círculo ocupa 100% do contentor e o botão da câmara fica na borda inferior direita do círculo.
+  const rootClass = fill ? "relative h-full w-full" : "relative -mt-10 h-20 w-20";
+  const circleClass = fill
+    ? "flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-primary-active font-display text-4xl font-extrabold text-white shadow-sm ring-4 ring-surface"
+    : "flex h-full w-full items-center justify-center overflow-hidden rounded-full border-4 border-surface bg-primary-active font-display text-3xl font-extrabold text-white";
+  const cameraPos = fill ? "bottom-0 right-0" : "-bottom-1 -right-1";
+
   return (
-    <div className="relative -mt-10 h-20 w-20">
-      <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border-4 border-surface bg-primary-active font-display text-3xl font-extrabold text-white">
-        {src ? <img src={src} alt="" width={80} height={80} onError={() => setBroken(true)} className="h-full w-full object-cover" /> : <span aria-hidden="true">{initials(name)}</span>}
+    <div className={rootClass}>
+      <div className={circleClass}>
+        {src ? <img src={src} alt="" width={fill ? 128 : 80} height={fill ? 128 : 80} onError={() => setBroken(true)} className="h-full w-full object-cover" /> : <span aria-hidden="true">{initials(name)}</span>}
       </div>
       <button
         ref={button}
@@ -107,7 +123,7 @@ export function AvatarEditor({ name, photo, token, userId, onChange }: Props) {
         aria-label={t("avatar.change")}
         aria-haspopup="menu"
         aria-expanded={menu !== null}
-        className="press absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface bg-primary text-white shadow-md hover:bg-primary-hover"
+        className={`press absolute ${cameraPos} flex h-9 w-9 items-center justify-center rounded-full border-2 border-surface bg-primary text-white shadow-md hover:bg-primary-hover`}
       >
         <CameraIcon width={17} height={17} />
       </button>
