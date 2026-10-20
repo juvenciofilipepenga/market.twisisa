@@ -12,7 +12,7 @@ import { Field } from "@/components/ui/Field";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { AvatarEditor } from "@/components/profile/AvatarEditor";
-import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, UserIcon, ShieldIcon, WalletIcon, UserPlusIcon } from "@/components/icons";
+import { BoxIcon, ChevronRightIcon, GiftIcon, LogOutIcon, UserIcon, ShieldIcon, UserPlusIcon } from "@/components/icons";
 
 function MenuRow({ to, icon, title, detail, trailing }: { to: string; icon: ReactNode; title: string; detail?: string; trailing?: ReactNode }) {
   return (
@@ -78,10 +78,6 @@ export default function ProfilePage() {
     navigate("/", { replace: true });
   }
 
-  function scrollToBenefits() {
-    document.getElementById("profile-benefits")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
   const since = me ? new Intl.DateTimeFormat(locale === "pt" ? "pt-PT" : "en-GB", { day: "2-digit", month: "long", year: "numeric" }).format(new Date(me.createdAt)) : null;
   const completed = referral?.completedReferrals ?? 0;
   const invited = referral?.invitedReferrals ?? (completed + (referral?.pendingReferrals ?? 0));
@@ -104,7 +100,7 @@ export default function ProfilePage() {
           </p>
 
           {/* Acções úteis para clientes, no lugar de seguir/reenviar do canal. */}
-          <div className="mt-6 grid w-full max-w-md grid-cols-4 gap-2 sm:gap-4">
+          <div className="mt-6 grid w-full max-w-sm grid-cols-3 gap-2 sm:gap-4">
             <Link to="/pedidos" className="group flex min-w-0 flex-col items-center gap-2 text-center">
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><BoxIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Encomendas</span>
@@ -116,10 +112,6 @@ export default function ProfilePage() {
             <button type="button" onClick={() => setEditing(true)} className="group flex min-w-0 flex-col items-center gap-2 text-center">
               <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><UserIcon width={24} height={24} /></span>
               <span className="text-xs font-medium leading-tight">Editar perfil</span>
-            </button>
-            <button type="button" onClick={scrollToBenefits} className="group flex min-w-0 flex-col items-center gap-2 text-center">
-              <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-elevated text-ink transition-colors group-hover:bg-primary-soft group-hover:text-primary-text"><WalletIcon width={24} height={24} /></span>
-              <span className="text-xs font-medium leading-tight">Benefícios</span>
             </button>
           </div>
         </section>
@@ -149,15 +141,10 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        <section id="profile-benefits" className="mt-2 scroll-mt-24">
-          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Benefícios e actividade</h2>
+        <section className="mt-2">
+          <h2 className="mb-2 px-1 text-[11px] font-extrabold uppercase tracking-[.15em] text-ink-faint">Actividade</h2>
           <div className="rounded-2xl border border-border bg-surface px-4">
             <MenuRow to="/pedidos" icon={<BoxIcon width={20} height={20} />} title="As minhas encomendas" detail="Consulte compras anteriores e acompanhe entregas." trailing={purchaseCount !== null ? <span className="rounded-full bg-elevated px-2 py-1 text-xs font-bold text-ink-muted">{purchaseCount}</span> : undefined} />
-            <div className="flex min-h-[70px] items-center gap-3 border-b border-border/80 py-3 last:border-b-0">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-soft text-primary-text"><WalletIcon width={20} height={20} /></span>
-              <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">Pontos e créditos</span><span className="mt-0.5 block text-xs leading-relaxed text-ink-muted">Benefícios para futuras compras e descontos.</span></span>
-              <span className="shrink-0 rounded-full bg-elevated px-2 py-1 text-[10px] font-bold text-ink-muted">Benefícios</span>
-            </div>
           </div>
         </section>
 
