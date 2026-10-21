@@ -9,42 +9,45 @@ import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 import CategoryPage from "./pages/CategoryPage";
 import CartPage from "./pages/CartPage";
-import OrderPage from "./pages/OrderPage";
-import PaymentPage from "./pages/PaymentPage";
-import ProfilePage from "./pages/ProfilePage";
-import LoginPage from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import NotificationPage from "./pages/NotificationPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import LegalPage from "./pages/legal/LegalPage";
-import SiteMapPage from "./pages/SiteMapPage";
+import SearchPage from "./pages/SearchPage";
 import { PublicLayout, FocusLayout } from "./components/layout/PublicLayout";
 import { RequireAuth } from "./components/auth/RequireAuth";
-import MorePage from "./pages/MorePage";
-import OrdersPage from "./pages/OrdersPage";
 import { SessionWatcher } from "./components/layout/SessionWatcher";
 import { ToastProvider } from "./components/ui/Toast";
 import { NotificationsProvider } from "./notifications/NotificationsContext";
-import InstallPage from "./pages/InstallPage";
-import SettingsPage from "./pages/SettingsPage";
-import ReferralsPage from "./pages/ReferralsPage";
-import SearchPage from "./pages/SearchPage";
-
-import AdminLoginPage from "./pages/admin/AdminLoginPage";
-import AdminLayout from "./pages/admin/AdminLayout";
-import AdminHome from "./pages/admin/AdminHome";
-import AdminTeamPage from "./pages/admin/AdminTeamPage";
 import { RequirePermission } from "./components/admin/RequirePermission";
-import AdminProductsPage from "./pages/admin/AdminProductsPage";
-import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
-import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
-import AdminInvoicePage from "./pages/admin/AdminInvoicePage";
-import AdminPaymentsPage from "./pages/admin/AdminPaymentsPage";
 import { CartReconciler } from "./cart/CartReconciler";
+import { PageFallback } from "./components/ui/PageFallback";
+
+// Páginas fora do percurso de compra e todo o admin só descarregam quando são abertas.
+const OrderPage = lazy(() => import("./pages/OrderPage"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const RegisterPage = lazy(() => import("./pages/RegisterPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const NotificationPage = lazy(() => import("./pages/NotificationPage"));
+const LegalPage = lazy(() => import("./pages/legal/LegalPage"));
+const SiteMapPage = lazy(() => import("./pages/SiteMapPage"));
+const MorePage = lazy(() => import("./pages/MorePage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const InstallPage = lazy(() => import("./pages/InstallPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const ReferralsPage = lazy(() => import("./pages/ReferralsPage"));
+
+const AdminLoginPage = lazy(() => import("./pages/admin/AdminLoginPage"));
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const AdminHome = lazy(() => import("./pages/admin/AdminHome"));
+const AdminTeamPage = lazy(() => import("./pages/admin/AdminTeamPage"));
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
+const AdminCategoriesPage = lazy(() => import("./pages/admin/AdminCategoriesPage"));
+const AdminOrdersPage = lazy(() => import("./pages/admin/AdminOrdersPage"));
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminInvoicePage = lazy(() => import("./pages/admin/AdminInvoicePage"));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
 
 const ChatWidget = lazy(() => import("./components/chat/ChatWidget"));
 const AdminChatPage = lazy(() => import("./pages/admin/AdminChatPage"));
@@ -60,6 +63,7 @@ export default function App() {
             <NotificationsProvider>
             <SessionWatcher />
             <CartReconciler />
+            <Suspense fallback={<PageFallback />}>
             <Routes>
               <Route element={<PublicLayout />}>
                 <Route path="/" element={<HomePage />} />
@@ -120,6 +124,7 @@ export default function App() {
               </Route>
 
             </Routes>
+            </Suspense>
 
             <ErrorBoundary mode="silent">
               <Suspense fallback={null}><ChatWidget /></Suspense>

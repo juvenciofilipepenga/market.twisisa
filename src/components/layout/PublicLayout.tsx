@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
+import { PageFallback } from "../ui/PageFallback";
 import { SiteFooter } from "./SiteFooter";
 import { CookieNotice } from "./CookieNotice";
 import { BottomNav } from "./BottomNav";
@@ -18,7 +20,7 @@ export function PublicLayout() {
   return (
     <div className="pb-nav flex min-h-screen flex-col">
       <ScrollToTop />
-      <div key={pathname} className="page-in flex-1"><Outlet /></div>
+      <div key={pathname} className="page-in flex-1"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>
       {FOOTER_PATHS.has(pathname) && <SiteFooter />}
       <BottomNav />
       <CookieNotice />
@@ -34,7 +36,7 @@ export function FocusLayout() {
   return (
     <div className="min-h-screen">
       <ScrollToTop />
-      <div key={pathname} className="page-in"><Outlet /></div>
+      <div key={pathname} className="page-in"><Suspense fallback={<PageFallback />}><Outlet /></Suspense></div>
     </div>
   );
 }

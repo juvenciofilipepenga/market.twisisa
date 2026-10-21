@@ -13,6 +13,7 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast, useBottomBarOffset } from "@/components/ui/Toast";
 import { BoxIcon, CheckIcon, MinusIcon, PlusIcon, TrashIcon } from "@/components/icons";
+import { cldUrl } from "@/lib/cloudinary";
 
 export default function CartPage() {
   const { t } = useLocale();
@@ -118,7 +119,7 @@ export default function CartPage() {
                     {checked && <CheckIcon width={12} height={12} />}
                   </button>
                   <Link to={`/produto/${item.productId}`} aria-label={item.name} className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-elevated sm:h-[76px] sm:w-[76px]">
-                    {item.imageUrl ? <img src={item.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 hover:scale-105" /> : (
+                    {item.imageUrl ? <img src={cldUrl(item.imageUrl, 320)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 hover:scale-105" /> : (
                       <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={21} height={21} /></div>
                     )}
                   </Link>

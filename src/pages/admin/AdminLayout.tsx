@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { PageFallback } from "@/components/ui/PageFallback";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { useLocale } from "@/i18n/LocaleContext";
@@ -44,5 +45,5 @@ export default function AdminLayout() {
       </div>
     );
   }
-  return <AdminShell><Outlet /></AdminShell>;
+  return <AdminShell><Suspense fallback={<PageFallback />}><Outlet /></Suspense></AdminShell>;
 }

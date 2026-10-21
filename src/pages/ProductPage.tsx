@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast, useBottomBarOffset } from "@/components/ui/Toast";
 import { BoxIcon, CheckIcon, ChevronLeftIcon, MinusIcon, PlusIcon, XIcon } from "@/components/icons";
+import { cldUrl, responsiveImage } from "@/lib/cloudinary";
 
 const LOW_STOCK = 5;
 type State = { kind: "loading" } | { kind: "error" } | { kind: "not-found" } | { kind: "ready"; product: Product };
@@ -193,7 +194,7 @@ export default function ProductPage() {
                         <div className="flex aspect-square w-full shrink-0 items-center justify-center text-ink-faint"><BoxIcon width={40} height={40} /></div>
                       ) : product.images.map((image, i) => (
                         <div key={image.id} className="relative aspect-square w-full shrink-0 snap-center">
-                          <img src={image.url} alt={image.altText ?? product.name} loading={i === 0 ? "eager" : "lazy"} className="absolute inset-0 h-full w-full object-cover" />
+                          <img {...responsiveImage(image.url, "(min-width: 768px) 50vw, 100vw", 640)} alt={image.altText ?? product.name} loading={i === 0 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : undefined} decoding="async" className="absolute inset-0 h-full w-full object-cover" />
                         </div>
                       ))}
                     </div>
@@ -209,7 +210,7 @@ export default function ProductPage() {
                     <div className="no-scrollbar mt-2 hidden gap-2 overflow-x-auto md:flex">
                       {product.images.map((image, i) => (
                         <button key={image.id} onClick={() => goToImage(i)} aria-label={`${i + 1} / ${product.images.length}`} className={`press relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 ${i === activeImage ? "border-primary" : "border-border"}`}>
-                          <img src={image.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                          <img src={cldUrl(image.url, 160)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
                         </button>
                       ))}
                     </div>

@@ -8,6 +8,7 @@ import { cardFacts, priceInfo } from "@/lib/productFacts";
 import type { Product } from "@/lib/types";
 import { useToast } from "../ui/Toast";
 import { CartIcon, BoxIcon, CheckIcon, ArrowRightIcon } from "../icons";
+import { responsiveImage } from "../../lib/cloudinary";
 
 const LOW_STOCK = 5;
 
@@ -92,9 +93,10 @@ export function ProductCard({ product }: { product: Product }) {
       >
         {image ? (
           <img
-            src={image.url}
+            {...responsiveImage(image.url, "(min-width: 1024px) 18rem, (min-width: 640px) 33vw, 50vw", 320)}
             alt={image.altText ?? product.name}
             loading="lazy"
+            decoding="async"
             className={`absolute inset-0 block h-full w-full object-cover object-center transition-transform duration-500 ease-out motion-reduce:transition-none md:group-hover:scale-[1.04] ${
               outOfStock ? "opacity-50" : ""
             }`}

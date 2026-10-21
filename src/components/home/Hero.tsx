@@ -7,6 +7,7 @@ import { img } from "@/lib/images";
 import type { Product } from "@/lib/types";
 import { SpeedLines } from "../brand/SpeedLines";
 import { Button, buttonClass } from "../ui/Button";
+import { responsiveImage } from "../../lib/cloudinary";
 import {
   ArrowRightIcon,
   BoxIcon,
@@ -291,7 +292,7 @@ function ProductSlide({
         >
           {image ? (
             <img
-              src={image.url}
+              {...responsiveImage(image.url, "(min-width: 768px) 18rem, (min-width: 640px) 11rem, 9rem", 288)}
               alt=""
               width={288}
               height={288}

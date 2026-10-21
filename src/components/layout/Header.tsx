@@ -12,6 +12,7 @@ import { formatMzn } from "@/lib/format";
 import { SearchIcon, BellIcon, CartIcon, BoxIcon, UserIcon } from "../icons";
 import { LanguageToggle } from "./LanguageToggle";
 import { HeaderNudges } from "./HeaderNudges";
+import { cldUrl } from "../../lib/cloudinary";
 
 const iconButton = "press relative flex h-10 w-10 items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-elevated hover:text-ink";
 
@@ -135,7 +136,7 @@ export function Header() {
                   return (
                     <button key={p.id} onClick={() => goToProduct(p.id)} className="flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left hover:bg-elevated">
                       <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-elevated">
-                        {image ? <img src={image.url} alt="" className="absolute inset-0 h-full w-full object-cover" /> : (
+                        {image ? <img src={cldUrl(image.url, 160)} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" /> : (
                           <div className="flex h-full w-full items-center justify-center text-ink-faint"><BoxIcon width={14} height={14} /></div>
                         )}
                       </div>
