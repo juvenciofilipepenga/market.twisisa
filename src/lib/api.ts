@@ -1,7 +1,7 @@
 import type {
   CloudinarySignature,
   AuthResponse, ForgotPasswordResult, ResetCheckResult, ResetPasswordResult, Category, Order, PaginatedResponse, Product, AppNotification, Me, AdminUser,
-  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatSync, ChatAiSettings, ChatKnowledgeEntry, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
+  Payment, Invoice, ReferralInfo, Conversation, ChatMessage, ChatSync, TeamMember, AdminProfileName, ChatAiSettings, ChatKnowledgeEntry, AdminStats, OrdersListResponse, OrderTab, PricingInput, PricingThresholds,
   PaymentView, InvoiceSettings, PaymentMethodsInfo, PaymentSettings, PendingReviewPayment, AdminAttention, AdminHistoryItem, CategoryAttribute, CategoryAttributePayload, ProductWritePayload
 } from "./types";
 import type { ImportRow } from "./productCsv";
@@ -309,6 +309,14 @@ export const api = {
         test: (token: string, message: string) =>
           request<{ reply: string | null; escalate: boolean; usedKnowledge: string[]; failure: string | null; groqConfigured: boolean }>("/admin/chat/ai/test", { method: "POST", body: { message }, token })
       }
+    },
+    team: {
+      list: (token: string) => request<{ data: TeamMember[]; profiles: AdminProfileName[] }>("/admin/team", { token }),
+      add: (token: string, input: { email: string; profiles: AdminProfileName[] }) =>
+        request<{ id: string }>("/admin/team", { method: "POST", body: input, token }),
+      setProfiles: (token: string, id: string, profiles: AdminProfileName[]) =>
+        request<{ id: string; adminProfiles: AdminProfileName[] }>(`/admin/team/${id}/profiles`, { method: "PUT", body: { profiles }, token }),
+      remove: (token: string, id: string) => request<void>(`/admin/team/${id}`, { method: "DELETE", token })
     }
   }
 };

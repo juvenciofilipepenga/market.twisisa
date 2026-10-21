@@ -10,6 +10,8 @@ interface AuthContextValue {
   /** O servidor confirmou a sessão guardada (papéis incluídos). Sem sessão, um visitante conta como confirmado. */
   verified: boolean;
   isAdmin: boolean;
+  /** Tem esta permissão de administração? (SUPER_ADMIN tem todas; ADMIN depende dos perfis.) */
+  can: (permission: string) => boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (name: string, email: string, password: string, phone?: string, referralCode?: string) => Promise<AuthUser>;
   /** Abre sessão com um token já emitido pelo servidor (ex.: logo após redefinir a palavra-passe). */
@@ -46,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastCheck.current = Date.now();
     try {
       const fresh = await api.auth.me(tokenValue);
-      const next: AuthUser = { id: fresh.id, name: fresh.name, email: fresh.email, roles: fresh.roles };
+      const next: AuthUser = { id: fresh.id, name: fresh.name, email: fresh.email, roles: fresh.roles, permissions: fresh.permissions ?? [] };
       setUser(next);
       setVerified(true);
     } catch (err) {
@@ -91,9 +93,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function persist(nextUser: AuthUser, nextToken: string) {
     setUser(nextUser);
     setToken(nextToken);
-    setVerified(true);
     lastCheck.current = Date.now();
     window.localStorage.setItem(TOKEN_KEY, nextToken);
+    // Staff que entra sem as permissões na resposta (ex.: depois de redefinir a palavra-passe): só passa a "verificado"
+    // quando o servidor as confirmar, para o painel não abrir vazio.
+    const staff = nextUser.roles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN");
+    if (staff && nextUser.permissions === undefined) {
+      setVerified(false);
+      void verify(nextToken);
+    } else {
+      setVerified(true);
+    }
   }
 
   async function login(email: string, password: string) {
@@ -111,6 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthContextValue>(() => ({
     user, token, loading, verified,
     isAdmin: Boolean(user?.roles.some((r) => r === "ADMIN" || r === "SUPER_ADMIN")),
+    can: (permission: string) => Boolean(user?.permissions?.includes(permission)),
     login, register, acceptSession: persist, logout
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [user, token, loading, verified, logout]);

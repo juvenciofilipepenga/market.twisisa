@@ -11,25 +11,27 @@ import { ScrollToTop } from "../layout/ScrollToTop";
 import { LogOutIcon, GridIcon, DocumentIcon, WalletIcon } from "../icons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
-type NavItem = { href: string; key: string; Icon: Icon; exact?: boolean };
+// `perm`: permissão que dá acesso a este destino (o menu só mostra o que a pessoa pode usar; a API é que decide).
+type NavItem = { href: string; key: string; Icon: Icon; perm: string; exact?: boolean };
 
-const DASH: NavItem = { href: "/admin", key: "admin.nav.dashboard", Icon: LayoutDashboardIcon, exact: true };
-const ORDERS: NavItem = { href: "/admin/pedidos", key: "admin.nav.orders", Icon: OrdersNavIcon };
-const CHAT: NavItem = { href: "/admin/chat", key: "admin.nav.chat", Icon: ChatNavIcon };
-const PRODUCTS: NavItem = { href: "/admin/produtos", key: "admin.nav.products", Icon: PackageNavIcon };
-const CATEGORIES: NavItem = { href: "/admin/categorias", key: "admin.nav.categories", Icon: TagsNavIcon };
-const INVOICE: NavItem = { href: "/admin/fatura", key: "admin.nav.invoice", Icon: DocumentIcon };
-const PAYMENTS: NavItem = { href: "/admin/pagamentos", key: "admin.nav.payments", Icon: WalletIcon };
-const USERS: NavItem = { href: "/admin/utilizadores", key: "admin.nav.users", Icon: UsersNavIcon };
+const DASH: NavItem = { href: "/admin", key: "admin.nav.dashboard", Icon: LayoutDashboardIcon, perm: "dashboard.view", exact: true };
+const ORDERS: NavItem = { href: "/admin/pedidos", key: "admin.nav.orders", Icon: OrdersNavIcon, perm: "orders.view" };
+const CHAT: NavItem = { href: "/admin/chat", key: "admin.nav.chat", Icon: ChatNavIcon, perm: "support.manage" };
+const PRODUCTS: NavItem = { href: "/admin/produtos", key: "admin.nav.products", Icon: PackageNavIcon, perm: "catalog.products" };
+const CATEGORIES: NavItem = { href: "/admin/categorias", key: "admin.nav.categories", Icon: TagsNavIcon, perm: "catalog.categories" };
+const INVOICE: NavItem = { href: "/admin/fatura", key: "admin.nav.invoice", Icon: DocumentIcon, perm: "finance.settings" };
+const PAYMENTS: NavItem = { href: "/admin/pagamentos", key: "admin.nav.payments", Icon: WalletIcon, perm: "payments.view" };
+const USERS: NavItem = { href: "/admin/utilizadores", key: "admin.nav.users", Icon: UsersNavIcon, perm: "users.view" };
+const TEAM: NavItem = { href: "/admin/equipa", key: "admin.nav.team", Icon: UsersNavIcon, perm: "team.manage" };
 
 const GROUPS: Array<{ title: string; items: NavItem[] }> = [
   { title: "admin.group.operation", items: [DASH, ORDERS, PAYMENTS, CHAT, INVOICE] },
   { title: "admin.group.catalog", items: [PRODUCTS, CATEGORIES] },
-  { title: "admin.group.people", items: [USERS] }
+  { title: "admin.group.people", items: [USERS, TEAM] }
 ];
 // Telemóvel: 4 destinos de uso diário na barra + "Mais" (o resto, a cor do painel, a loja e sair).
 const TABS: NavItem[] = [DASH, ORDERS, PRODUCTS, CHAT];
-const MORE: NavItem[] = [PAYMENTS, CATEGORIES, USERS, INVOICE];
+const MORE: NavItem[] = [PAYMENTS, CATEGORIES, USERS, TEAM, INVOICE];
 
 function AccentPicker({ accent, onChange, label }: { accent: AdminAccent; onChange: (id: string) => void; label: string }) {
   return (
@@ -49,7 +51,8 @@ function AccentPicker({ accent, onChange, label }: { accent: AdminAccent; onChan
 export function AdminShell({ children }: { children: ReactNode }) {
   useDocumentMeta({ title: "Admin · Twisisa Market", noindex: true });
   const { t } = useLocale();
-  const { user, logout } = useAuth();
+  const { user, logout, can } = useAuth();
+  const allowed = (item: NavItem) => can(item.perm);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [accent, setAccent] = useAdminAccent();
@@ -86,7 +89,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 pb-3">
-          {GROUPS.map((g) => (
+          {GROUPS.map((g) => ({ ...g, items: g.items.filter(allowed) })).filter((g) => g.items.length > 0).map((g) => (
             <div key={g.title}>
               <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-widest text-ink-faint">{t(g.title)}</p>
               {g.items.map((item) => (
@@ -136,7 +139,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* ===== Telemóvel: barra inferior ===== */}
       <nav aria-label="Admin" className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 backdrop-blur md:hidden">
         <ul className="flex h-[3.75rem] items-stretch">
-          {TABS.map((item) => (
+          {TABS.filter(allowed).map((item) => (
             <li key={item.href} className="flex-1">
               <Link to={item.href} aria-current={isActive(item) ? "page" : undefined}
                 className={`press relative flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-semibold ${isActive(item) ? "text-primary-text" : "text-ink-faint"}`}>
@@ -158,7 +161,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {moreOpen && (
         <Modal title={t("admin.nav.more")} onClose={() => setMoreOpen(false)} size="sm">
           <div className="space-y-1">
-            {MORE.map((item) => (
+            {MORE.filter(allowed).map((item) => (
               <Link key={item.href} to={item.href} onClick={() => setMoreOpen(false)}
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium ${isActive(item) ? "bg-primary-soft text-ink" : "text-ink-muted hover:bg-elevated"}`}>
                 <item.Icon width={20} height={20} />{t(item.key)}

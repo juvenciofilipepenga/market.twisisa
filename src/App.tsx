@@ -35,7 +35,9 @@ import SearchPage from "./pages/SearchPage";
 
 import AdminLoginPage from "./pages/admin/AdminLoginPage";
 import AdminLayout from "./pages/admin/AdminLayout";
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminHome from "./pages/admin/AdminHome";
+import AdminTeamPage from "./pages/admin/AdminTeamPage";
+import { RequirePermission } from "./components/admin/RequirePermission";
 import AdminProductsPage from "./pages/admin/AdminProductsPage";
 import AdminCategoriesPage from "./pages/admin/AdminCategoriesPage";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage";
@@ -91,18 +93,19 @@ export default function App() {
 
               <Route path="/admin/login" element={<AdminLoginPage />} />
               <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="produtos" element={<AdminProductsPage />} />
-                <Route path="categorias" element={<AdminCategoriesPage />} />
-                <Route path="pedidos" element={<AdminOrdersPage />} />
-                <Route path="utilizadores" element={<AdminUsersPage />} />
-                <Route path="fatura" element={<AdminInvoicePage />} />
-                <Route path="pagamentos" element={<AdminPaymentsPage />} />
+                <Route index element={<AdminHome />} />
+                <Route path="produtos" element={<RequirePermission perm="catalog.products"><AdminProductsPage /></RequirePermission>} />
+                <Route path="categorias" element={<RequirePermission perm="catalog.categories"><AdminCategoriesPage /></RequirePermission>} />
+                <Route path="pedidos" element={<RequirePermission perm="orders.view"><AdminOrdersPage /></RequirePermission>} />
+                <Route path="utilizadores" element={<RequirePermission perm="users.view"><AdminUsersPage /></RequirePermission>} />
+                <Route path="fatura" element={<RequirePermission perm="finance.settings"><AdminInvoicePage /></RequirePermission>} />
+                <Route path="pagamentos" element={<RequirePermission perm="payments.view"><AdminPaymentsPage /></RequirePermission>} />
+                <Route path="equipa" element={<RequirePermission perm="team.manage"><AdminTeamPage /></RequirePermission>} />
                 <Route
                   path="chat"
                   element={
                     <ErrorBoundary>
-                      <Suspense fallback={null}><AdminChatPage /></Suspense>
+                      <RequirePermission perm="support.manage"><Suspense fallback={null}><AdminChatPage /></Suspense></RequirePermission>
                     </ErrorBoundary>
                   }
                 />
@@ -110,7 +113,7 @@ export default function App() {
                   path="chat/ia"
                   element={
                     <ErrorBoundary>
-                      <Suspense fallback={null}><AdminChatAiPage /></Suspense>
+                      <RequirePermission perm="support.manage"><Suspense fallback={null}><AdminChatAiPage /></Suspense></RequirePermission>
                     </ErrorBoundary>
                   }
                 />

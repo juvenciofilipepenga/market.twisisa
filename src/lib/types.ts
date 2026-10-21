@@ -94,6 +94,20 @@ export interface AuthUser {
   name: string;
   email: string;
   roles: Role[];
+  /** Permissões de administração (vêm do servidor; o backend volta a verificá-las em cada pedido). */
+  permissions?: string[];
+}
+
+export type AdminProfileName = "ORDERS" | "FINANCE" | "CATALOG" | "SUPPORT" | "CONTENT";
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  adminProfiles: AdminProfileName[];
+  roles: Role[];
+  isSuper: boolean;
 }
 
 export interface ForgotPasswordResult {
